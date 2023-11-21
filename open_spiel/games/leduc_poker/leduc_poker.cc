@@ -636,10 +636,22 @@ void LeducState::ResolveWinner() {
         num_winners_ = 1;
         winner_[player_index] = true;
         if(player_index == 0){
+          double sum = 0;
           money_[player_index] += pot_;
+          for (Player player_index = 1; player_index < num_players_; player_index++){
+            sum += money_[player_index];
+          }
+          for (Player player_index = 1; player_index < num_players_; player_index++){
+            money_[player_index] = sum /(num_players_-1);
+          }
         }else{
+          double sum = 0;
           for (Player player_index = 1; player_index < num_players_; player_index++){
             money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
+            sum += money_[player_index];
+          }
+          for (Player player_index = 1; player_index < num_players_; player_index++){
+            money_[player_index] = sum /(num_players_-1);
           }
         }
         pot_ = 0;
@@ -665,8 +677,13 @@ void LeducState::ResolveWinner() {
           num_winners_++;
         }
       }
+      double sum = 0;
       for (Player player_index = 1; player_index < num_players_; player_index++){
         money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
+        sum += money_[player_index];
+      }
+      for (Player player_index = 1; player_index < num_players_; player_index++){
+        money_[player_index] = sum /(num_players_-1);
       }
       return;
     }
@@ -674,15 +691,9 @@ void LeducState::ResolveWinner() {
     int best_hand_rank = -1;
     num_winners_ = 0;
     std::fill(winner_.begin(), winner_.end(), false);
-    // std::cout<<"num_players_ "<<num_players_<<std::endl;
-    // for(int i=0;i<folded_.size();i++){
-    //   std::cout<<"fold "<<folded_[i]<<std::endl;
-    // }
     for (Player player_index = 0; player_index < num_players_; player_index++) {
       if (!folded_[player_index]) {
         int rank = RankHand(player_index);
-        // std::cout<<"rank "<<rank<<std::endl;
-        // std::cout<<"best_hand_rank "<<best_hand_rank<<std::endl;
         if (rank > best_hand_rank) {
           // Beat the current best hand! Clear the winners list, then add.
           best_hand_rank = rank;
@@ -698,7 +709,6 @@ void LeducState::ResolveWinner() {
     }
 
     // Split the pot among the winners (possibly only one).
-    // std::cout<<"num_winners_"<<num_winners_<<std::endl;
     SPIEL_CHECK_TRUE(1 <= num_winners_ && num_winners_ <= num_players_);
     
     //收益修改
@@ -706,15 +716,28 @@ void LeducState::ResolveWinner() {
     if (winner_[player_index]){
         if(num_winners_ == 1){
             money_[player_index] += static_cast<double>(pot_);
+            double sum = 0;
+            for (Player player_index = 1; player_index < num_players_; player_index++){
+              money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
+              sum += money_[player_index];
+            }
+            for (Player player_index = 1; player_index < num_players_; player_index++){
+              money_[player_index] = sum /(num_players_-1);
+            }
         }else{
           for (Player player_index = 0; player_index < num_players_; player_index++){
             money_[player_index] = kStartingMoney;
           } 
         }
     }else{
-        for (Player player_index = 1; player_index < num_players_; player_index++){
-            money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
-        }
+      double sum = 0;
+      for (Player player_index = 1; player_index < num_players_; player_index++){
+        money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
+        sum += money_[player_index];
+      }
+      for (Player player_index = 1; player_index < num_players_; player_index++){
+        money_[player_index] = sum /(num_players_-1);
+      }
     }
     // for (Player player_index = 0; player_index < num_players_; player_index++) {
     //   if (winner_[player_index]) {
