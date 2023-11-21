@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+//这是对抗性团队博弈版本leduc
+//leduc for ATG
+
 #include "open_spiel/games/leduc_poker/leduc_poker.h"
 
 #include <algorithm>
