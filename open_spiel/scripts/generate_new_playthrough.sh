@@ -26,7 +26,7 @@ then
   exit
 fi
 
-python open_spiel/python/examples/playthrough.py \
+python3 open_spiel/python/examples/playthrough.py \
 --game $GAME \
 --output_file open_spiel/integration_tests/playthroughs/$GAME.txt \
 --alsologtostdout

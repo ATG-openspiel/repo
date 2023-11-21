@@ -31,7 +31,6 @@
 # virtualenv or as system wide packages. By default, it will be installed the
 # first time the virtualenv is setup, but you can force an install using the
 # --install=true flag.
-
 # Load argslib for parsing of command-line arguments.
 source $(dirname "$0")/argslib.sh
 
@@ -41,7 +40,7 @@ ArgsLibAddArg virtualenv bool true "Whether to use virtualenv. We enter a virtua
 ArgsLibAddArg install string "default" 'Whether to install requirements.txt packages. Doing it is slow. By default, it will be true (a) the first-time a virtualenv is being setup (if system_wide_packages is false), (b) if the user overrides it with "true".'
 ArgsLibAddArg system_wide_packages bool false 'Whether to use --system-site-packages on the virtualenv.'
 ArgsLibAddArg build_with_pip bool false 'Whether to use "python3 -m pip install ." or the usual cmake&make and ctest.'
-ArgsLibAddArg build_only bool false 'Builds only the library, without running tests.'
+ArgsLibAddArg build_only bool true 'Builds only the library, without running tests.'
 ArgsLibAddArg test_only string "all" 'Build and runs the tests matching this string (use "all" to run all tests)'
 ArgsLibAddArg build_dir string "build" 'Location of the build directory.'
 ArgsLibAddArg num_threads int -1 'Number of threads to use when paralellizing build / tests. (Defaults to 4*<number of CPUs>)'
@@ -57,6 +56,8 @@ set -e  # exit when any command fails
 
 MYDIR="$(dirname "$(realpath "$0")")"
 source "${MYDIR}/global_variables.sh"
+
+
 
 CXX=${CXX:-`which clang++`}
 if [ ! -x $CXX ]

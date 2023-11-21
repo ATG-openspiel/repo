@@ -159,12 +159,14 @@ def main(_):
     run_name += f"{FLAGS.gym_id}__"
   run_name += f"{FLAGS.seed}__{current_month_text}__{current_day}__{int(time.time())}"
 
+  # /repo/open_spiel/python/examples/runs/kuhn_poker__ppo_example__1__Oct__17__1697549565
   writer = SummaryWriter(f"runs/{run_name}")
   writer.add_text(
       "hyperparameters",
       "|param|value|\n|-|-|\n%s" %
       ("\n".join([f"|{key}|{value}|" for key, value in vars(FLAGS).items()])),
   )
+
 
   random.seed(FLAGS.seed)
   np.random.seed(FLAGS.seed)
@@ -189,8 +191,10 @@ def main(_):
     agent_fn = PPOAgent
 
   game = envs.envs[0]._game  # pylint: disable=protected-access
-  info_state_shape = game.observation_tensor_shape()
-
+  # info_state_shape = game.observation_tensor_shape()
+  info_state_shape = [11]
+  #dayin
+  print(info_state_shape,'\n')
   num_updates = FLAGS.total_timesteps // batch_size
   agent = PPO(
       input_shape=info_state_shape,
@@ -216,16 +220,44 @@ def main(_):
       writer=writer,
       agent_fn=agent_fn,
   )
-
+  agent_static = PPO(
+      input_shape=info_state_shape,
+      num_actions=game.num_distinct_actions(),
+      num_players=game.num_players(),
+      player_id=1,
+      num_envs=FLAGS.num_envs,
+      steps_per_batch=FLAGS.num_steps,
+      num_minibatches=FLAGS.num_minibatches,
+      update_epochs=FLAGS.update_epochs,
+      learning_rate=FLAGS.learning_rate,
+      gae=FLAGS.gae,
+      gamma=FLAGS.gamma,
+      gae_lambda=FLAGS.gae_lambda,
+      normalize_advantages=FLAGS.norm_adv,
+      clip_coef=FLAGS.clip_coef,
+      clip_vloss=FLAGS.clip_vloss,
+      entropy_coef=FLAGS.ent_coef,
+      value_coef=FLAGS.vf_coef,
+      max_grad_norm=FLAGS.max_grad_norm,
+      target_kl=FLAGS.target_kl,
+      device=device,
+      writer=writer,
+      agent_fn=agent_fn,
+  )
   n_reward_window = 50
   recent_rewards = collections.deque(maxlen=n_reward_window)
   time_step = envs.reset()
   for update in range(num_updates):
-    for _ in range(FLAGS.num_steps):
-      agent_output = agent.step(time_step)
-      time_step, reward, done, unreset_time_steps = envs.step(
-          agent_output, reset_if_done=True)
-
+    i = 0
+    for i in range(FLAGS.num_steps):
+      if i%2 == 0:
+        agent_output = agent.step(time_step)
+        time_step, reward, done, unreset_time_steps = envs.step(
+            agent_output, reset_if_done=True)
+      else:
+        agent_output_static = agent_static.step(time_step)
+        envs.step(agent_output_static, reset_if_done=True)
+      i += 1
       if FLAGS.game_name == "atari":
         # Get around the fact that
         # stable_baselines3.common.atari_wrappers.EpisodicLifeEnv will modify
@@ -245,7 +277,8 @@ def main(_):
             writer.add_scalar("charts/player_0_training_returns", real_reward,
                               agent.total_steps_done)
             recent_rewards.append(real_reward)
-
+      #dayin
+      print(reward,'\n')
       agent.post_step(reward, done)
 
     if FLAGS.anneal_lr:

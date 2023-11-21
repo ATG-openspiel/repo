@@ -21,8 +21,8 @@
 #include "open_spiel/spiel.h"
 #include "open_spiel/spiel_utils.h"
 
-ABSL_FLAG(std::string, game, "tic_tac_toe", "The name of the game to play.");
-ABSL_FLAG(int, players, 0, "How many players in this game, 0 for default.");
+ABSL_FLAG(std::string, game, "leduc_poker", "The name of the game to play.");
+ABSL_FLAG(int, players, 3, "How many players in this game, 0 for default.");
 ABSL_FLAG(bool, show_infostate, false, "Show the information state.");
 ABSL_FLAG(int, seed, 0, "Seed for the random number generator. 0 for auto.");
 ABSL_FLAG(bool, show_legals, false, "Show the legal moves.");

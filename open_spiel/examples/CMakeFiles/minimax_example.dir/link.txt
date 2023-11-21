@@ -1,0 +1,1 @@
+/usr/bin/c++ -rdynamic CMakeFiles/minimax_example.dir/minimax_example.o -o minimax_example 

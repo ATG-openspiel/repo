@@ -73,6 +73,7 @@ class PPOAgent(nn.Module):
         nn.Tanh(),
         layer_init(nn.Linear(64, num_actions), std=0.01),
     )
+    self.observation_shape = observation_shape
     self.device = device
     self.num_actions = num_actions
     self.register_buffer("mask_value", torch.tensor(INVALID_ACTION_PENALTY))
@@ -89,6 +90,15 @@ class PPOAgent(nn.Module):
         logits=logits, masks=legal_actions_mask, mask_value=self.mask_value)
     if action is None:
       action = probs.sample()
+      print("observation_shape: ",self.observation_shape)
+      print("num_actions: ",self.num_actions)
+      print("legal_actions_mask: ",legal_actions_mask)
+      print("obs: ",x)
+      print("action: ",action)
+      print("log_prob(action): ",probs.log_prob(action))
+      print("probs: ",probs)
+      print("logits: ",logits)
+      
     return action, probs.log_prob(action), probs.entropy(), self.critic(
         x), probs.probs
 
@@ -232,8 +242,9 @@ class PPO(nn.Module):
     self.legal_actions_mask = torch.zeros(
         (self.steps_per_batch, self.num_envs, self.num_actions),
         dtype=torch.bool).to(device)
-    self.obs = torch.zeros((self.steps_per_batch, self.num_envs) +
-                           self.input_shape).to(device)
+    # self.obs = torch.zeros((self.steps_per_batch, self.num_envs) +
+    #                        self.input_shape).to(device)
+    self.obs = torch.zeros((self.steps_per_batch, self.num_envs) + tuple(self.input_shape)).to(device)
     self.actions = torch.zeros((self.steps_per_batch, self.num_envs)).to(device)
     self.logprobs = torch.zeros(
         (self.steps_per_batch, self.num_envs)).to(device)
@@ -295,11 +306,16 @@ class PPO(nn.Module):
             StepOutput(action=a.item(), probs=p)
             for (a, p) in zip(action, probs)
         ]
+        print("agent_output",agent_output)
         return agent_output
 
   def post_step(self, reward, done):
-    self.rewards[self.cur_batch_idx] = torch.tensor(reward).to(
-        self.device).view(-1)
+    # self.rewards[self.cur_batch_idx] = torch.tensor(reward).to(
+    #     self.device).view(-1)
+    #xiugai
+    reward_for_player = torch.tensor(reward)[:, 0].view(-1, 1)
+    self.rewards[self.cur_batch_idx] = reward_for_player.to(
+            self.device).view(-1)
     self.dones[self.cur_batch_idx] = torch.tensor(done).to(self.device).view(-1)
 
     self.total_steps_done += self.num_envs
@@ -340,7 +356,8 @@ class PPO(nn.Module):
     # flatten the batch
     b_legal_actions_mask = self.legal_actions_mask.reshape(
         (-1, self.num_actions))
-    b_obs = self.obs.reshape((-1,) + self.input_shape)
+    #xiugai
+    b_obs = self.obs.reshape((-1,) + tuple(self.input_shape))
     b_logprobs = self.logprobs.reshape(-1)
     b_actions = self.actions.reshape(-1)
     b_advantages = advantages.reshape(-1)

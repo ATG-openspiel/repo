@@ -270,12 +270,17 @@ std::vector<Action> DouDizhuState::DealLegalActions() const {
 }
 
 std::vector<Action> DouDizhuState::BiddingLegalActions() const {
-  std::vector<Action> legal_actions = {kPass};
+
+  //修改合法下注动作为{3}
+
+  // std::vector<Action> legal_actions = {kPass};
+  std::vector<Action> legal_actions = {};
   legal_actions.reserve(kNumBids + 1);
 
-  for (int bid = winning_bid_ + 1; bid <= kNumBids; ++bid) {
-    legal_actions.push_back(kBiddingActionBase + bid);
-  }
+  // for (int bid = winning_bid_ + 1; bid <= kNumBids; ++bid) {
+  //   legal_actions.push_back(kBiddingActionBase + bid);
+  // }
+  legal_actions.push_back(3);
   return legal_actions;
 }
 

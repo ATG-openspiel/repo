@@ -1,0 +1,1 @@
+/usr/bin/c++ -rdynamic CMakeFiles/fsicfr_liars_dice.dir/fsicfr_liars_dice.o -o fsicfr_liars_dice 

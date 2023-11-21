@@ -25,7 +25,7 @@ def main(_):
   game = pyspiel.load_game("kuhn_poker")
 
   cfr_solver = cfr.CFRSolver(game)
-  iterations = 1000
+  iterations = 10
 
   for i in range(iterations):
     cfr_value = cfr_solver.evaluate_and_update_policy()
