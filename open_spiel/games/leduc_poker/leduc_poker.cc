@@ -718,7 +718,6 @@ void LeducState::ResolveWinner() {
             money_[player_index] += static_cast<double>(pot_);
             double sum = 0;
             for (Player player_index = 1; player_index < num_players_; player_index++){
-              money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
               sum += money_[player_index];
             }
             for (Player player_index = 1; player_index < num_players_; player_index++){
