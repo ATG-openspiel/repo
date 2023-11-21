@@ -339,7 +339,7 @@ void LeducState::DoApplyAction(Action move) {
           move = ActionType::kCall;
         }
       } else if (move == ActionType::kRaise) {
-        if (num_raises_ >= 2) {//raise次数
+        if (num_raises_ >= kMaxRaises) {//raise次数(times of raise)
           move = ActionType::kCall;
         }
       }
@@ -449,7 +449,7 @@ std::vector<Action> LeducState::LegalActions() const {
   // Can always call/check
   movelist.push_back(ActionType::kCall);
 
-  if (num_raises_ < 2) {//raise次数
+  if (num_raises_ < kMaxRaises) {//raise次数(times of raise)
     movelist.push_back(ActionType::kRaise);
   }
 
