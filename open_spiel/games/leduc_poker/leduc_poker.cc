@@ -613,7 +613,7 @@ int LeducState::RankHand(Player player) const {
   // 0 J1, 1 J2, 2 Q1, 3 Q2, 4 K1, 5 K2.
   int num_cards = deck_.size();
 
-  if (hand[0] / 2 == hand[1] / 2){
+  if (hand[0] / kNumSuits == hand[1] / kNumSuits){
     // Pair! Offset by deck_size_^2 to put higher than every singles combo.
     return (num_cards * num_cards + hand[0] / kNumSuits);
   } else {
