@@ -255,7 +255,7 @@ LeducState::LeducState(std::shared_ptr<const Game> game, bool action_mapping,
       pot_(kAnte * game->NumPlayers()),  // Number of chips in the pot.
       public_card_(kInvalidCard),
       // Number of cards remaining; not equal deck_.size()!
-      deck_size_((game->NumPlayers() + 1) * kNumSuits),
+      deck_size_((game->NumPlayers() + kNumRanks) * kNumSuits), //修改rank数量 
       private_cards_dealt_(0),
       remaining_players_(game->NumPlayers()),
       // Is this player a winner? Indexed by pid.
@@ -862,7 +862,7 @@ void LeducState::SetPrivateCards(const std::vector<int>& new_private_cards) {
 LeducGame::LeducGame(const GameParameters& params)
     : Game(kGameType, params),
       num_players_(ParameterValue<int>("players")),
-      total_cards_((num_players_ + 1) * kNumSuits),
+      total_cards_((num_players_ + kNumRanks) * kNumSuits), //修改rank (KNumRanks>=0)
       action_mapping_(ParameterValue<bool>("action_mapping")),
       suit_isomorphism_(ParameterValue<bool>("suit_isomorphism")) {
   SPIEL_CHECK_GE(num_players_, kGameType.min_num_players);

@@ -60,6 +60,7 @@ inline constexpr int kSecondRaiseAmount = 4;
 inline constexpr int kTotalRaisesPerRound = 2;
 inline constexpr int kMaxRaises = 3;//raise次数(times of raise) 只修改这里就可以完成每回合最大下注次数的修改
 inline constexpr int kStartingMoney = 100;
+inline constexpr int kNumRanks = 2;//rank数量 只修改这里就可以完成rank数量的修改, total_cards = kNumSuits*(num_players + kNumRanks)
 
 // Number of info states in the 2P game with default params.
 inline constexpr int kNumInfoStates = 936;
