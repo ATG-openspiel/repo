@@ -54,7 +54,7 @@ namespace leduc_poker {
 
 inline constexpr int kInvalidCard = -10000;
 inline constexpr int kDefaultPlayers = 2;
-inline constexpr int kNumSuits = 2;
+inline constexpr int kNumSuits = 3;//花色数量 只修改这里就可以完成花色数量的修改
 inline constexpr int kFirstRaiseAmount = 2;
 inline constexpr int kSecondRaiseAmount = 4;
 inline constexpr int kTotalRaisesPerRound = 2;

@@ -597,7 +597,7 @@ int LeducState::RankHand(Player player) const {
   }
 
   if (suit_isomorphism_) {
-    int num_cards = deck_.size() / 2;
+    int num_cards = deck_.size() / kNumSuits;
     if (hand[0] == hand[1]) {
       // Pair! Offset by deck_size_^2 to put higher than every singles combo.
       return (num_cards * num_cards + hand[0]);
@@ -613,14 +613,14 @@ int LeducState::RankHand(Player player) const {
   // 0 J1, 1 J2, 2 Q1, 3 Q2, 4 K1, 5 K2.
   int num_cards = deck_.size();
 
-  if (hand[0] % 2 == 0 && hand[1] == hand[0] + 1) {
+  if (hand[0] / 2 == hand[1] / 2){
     // Pair! Offset by deck_size_^2 to put higher than every singles combo.
-    return (num_cards * num_cards + hand[0]);
+    return (num_cards * num_cards + hand[0] / kNumSuits);
   } else {
     // Otherwise card value dominates. No high/low suit: only two suits, and
     // given ordering above, dividing by gets the value (integer division
     // intended.) This could lead to ties/draws and/or multiple winners.
-    return (hand[1] / 2) * num_cards + (hand[0] / 2);
+    return (hand[1] / kNumSuits) * num_cards + (hand[0] / kNumSuits);
   }
 }
 
@@ -796,13 +796,22 @@ void LeducState::SetPrivate(Player player, Action move) {
   if (suit_isomorphism_) {
     // Consecutive cards are identical under suit isomorphism.
     private_cards_[player] = move;
-    if (deck_[move * 2] != kInvalidCard) {
-      deck_[move * 2] = kInvalidCard;
-    } else if (deck_[move * 2 + 1] != kInvalidCard) {
-      deck_[move * 2 + 1] = kInvalidCard;
-    } else {
-      SpielFatalError("Suit isomorphism error.");
+    for(int i=0; i<kNumSuits; i++){
+      if (deck_[move * 2+i] != kInvalidCard){
+        deck_[move * 2+i] = kInvalidCard;
+        break;
+      }
+      if(i == kNumSuits-1){
+        SpielFatalError("Suit isomorphism error.");
+      }
     }
+    // if (deck_[move * 2] != kInvalidCard) {
+    //   deck_[move * 2] = kInvalidCard;
+    // } else if (deck_[move * 2 + 1] != kInvalidCard) {
+    //   deck_[move * 2 + 1] = kInvalidCard;
+    // } else {
+    //   SpielFatalError("Suit isomorphism error.");
+    // }
   } else {
     private_cards_[player] = deck_[move];
     deck_[move] = kInvalidCard;
@@ -840,7 +849,7 @@ std::unique_ptr<State> LeducState::ResampleFromInfostate(
 }
 
 int LeducState::NumObservableCards() const {
-  return suit_isomorphism_ ? deck_.size() / 2 : deck_.size();
+  return suit_isomorphism_ ? deck_.size() / kNumSuits : deck_.size();
 }
 
 int LeducState::MaxBetsPerRound() const { return 3 * num_players_ - 2; }
@@ -870,7 +879,7 @@ std::unique_ptr<State> LeducGame::NewInitialState() const {
 
 int LeducGame::MaxChanceOutcomes() const {
   if (suit_isomorphism_) {
-    return total_cards_ / 2;
+    return total_cards_ / kNumSuits;
   } else {
     return total_cards_;
   }
