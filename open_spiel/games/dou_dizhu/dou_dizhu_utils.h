@@ -47,6 +47,7 @@ inline constexpr int kNumSuits = 4;
 
 // Observations are: the number of cards of each rank I current have
 // Plus the number of cards of each rank that had been played by all players
+// Plus the current player 
 // Plus the start player
 // Plus the face up card
 inline constexpr int kObservationTensorSize =

@@ -54,13 +54,13 @@ namespace leduc_poker {
 
 inline constexpr int kInvalidCard = -10000;
 inline constexpr int kDefaultPlayers = 2;
-inline constexpr int kNumSuits = 3;//花色数量 只修改这里就可以完成花色数量的修改
+inline constexpr int kNumSuits = 2;//花色数量 只修改这里就可以完成花色数量的修改
 inline constexpr int kFirstRaiseAmount = 2;
 inline constexpr int kSecondRaiseAmount = 4;
 inline constexpr int kTotalRaisesPerRound = 2;
-inline constexpr int kMaxRaises = 3;//raise次数(times of raise) 只修改这里就可以完成每回合最大下注次数的修改
+inline constexpr int kMaxRaises = 7;//raise次数(times of raise) 只修改这里就可以完成每回合最大下注次数的修改
 inline constexpr int kStartingMoney = 100;
-inline constexpr int kNumRanks = 2;//rank数量 只修改这里就可以完成rank数量的修改, total_cards = kNumSuits*(num_players + kNumRanks)
+inline constexpr int kNumRanks = 1;//rank数量 只修改这里就可以完成rank数量的修改, total_cards = kNumSuits*(num_players + kNumRanks)
 
 // Number of info states in the 2P game with default params.
 inline constexpr int kNumInfoStates = 936;
@@ -218,7 +218,9 @@ class LeducGame : public Game {
     // E.g. longest round for 4-player is 10 bets:
     //   check, check, check, bet, call, call, raise, call, call, call
     // = 1 bet + 1 raise + (num_players_-1)*2 calls + (num_players_-2) calls
-    return 3 * num_players_ - 2;
+
+    // return 3 * num_players_ - 2;
+    return (1+kMaxRaises)*num_players_ - kMaxRaises;
   }
   int MaxGameLength() const override {
     // 2 rounds.

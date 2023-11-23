@@ -223,7 +223,9 @@ void DouDizhuState::WriteObservationTensor(Player player,
   auto values_iterator = values.begin();
   const int played_deck_base = (kNumRanks - 2) * (kNumSuits + 1) + 2 * 2;
   for (int i = 0; i < kNumRanks; ++i) {
-    values_iterator[i * (kNumSuits + 1) + holds_[player][i]] = 1;
+    //手牌中有的牌
+    values_iterator[i * (kNumSuits + 1) + holds_[player][i]] = 1;    
+    //已经被打出的牌   
     values_iterator[played_deck_base + i * (kNumSuits + 1) + played_deck_[i]] =
         1;
   }
