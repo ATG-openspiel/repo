@@ -909,7 +909,7 @@ std::vector<int> LeducGame::ObservationTensorShape() const {
 
 double LeducGame::MaxUtility() const {
   // In poker, the utility is defined as the money a player has at the end of
-  // the game minus then money the player had before starting the game.
+  // the game minus the money the player had before starting the game.
   // The most a player can win *per opponent* is the most each player can put
   // into the pot, which is the raise amounts on each round times the maximum
   // number raises, plus the original chip they put in to play.
@@ -919,7 +919,7 @@ double LeducGame::MaxUtility() const {
 
 double LeducGame::MinUtility() const {
   // In poker, the utility is defined as the money a player has at the end of
-  // the game minus then money the player had before starting the game.
+  // the game minus the money the player had before starting the game.
   // The most any single player can lose is the maximum number of raises per
   // round times the amounts of each of the raises, plus the original chip
   // they put in to play.

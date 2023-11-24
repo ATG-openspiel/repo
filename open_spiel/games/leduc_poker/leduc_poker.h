@@ -57,8 +57,8 @@ inline constexpr int kDefaultPlayers = 2;
 inline constexpr int kNumSuits = 2;//花色数量 只修改这里就可以完成花色数量的修改
 inline constexpr int kFirstRaiseAmount = 2;
 inline constexpr int kSecondRaiseAmount = 4;
-inline constexpr int kTotalRaisesPerRound = 2;
-inline constexpr int kMaxRaises = 7;//raise次数(times of raise) 只修改这里就可以完成每回合最大下注次数的修改
+inline constexpr int kTotalRaisesPerRound = 2;//这个参数不修改，只与最大最小收益相关，最大最小收益并无实际用处
+inline constexpr int kMaxRaises = 3;//raise次数(times of raise) 只修改这里就可以完成每回合最大下注次数的修改
 inline constexpr int kStartingMoney = 100;
 inline constexpr int kNumRanks = 1;//rank数量 只修改这里就可以完成rank数量的修改, total_cards = kNumSuits*(num_players + kNumRanks)
 

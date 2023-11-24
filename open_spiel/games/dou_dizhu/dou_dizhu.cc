@@ -139,6 +139,7 @@ std::array<std::string, kNumRanks> FormatHand(
       cards[rank].push_back(kRankChar[rank]);
       is_void = false;
     }
+    // cards[rank].push_back('|');
     if (is_void && mark_voids) absl::StrAppend(&cards[rank], "none");
   }
   if (deal[player][kNumRanks - 2])
@@ -160,7 +161,7 @@ DouDizhuState::OriginalDeal() const {
   std::array<std::array<int, kNumRanks>, kNumPlayers> deal{};
   for (int i = 1; i < kNumCards - kNumCardsLeftOver + 1; ++i)
     deal[((i - 1 + first_player_) % kNumPlayers)]
-        [CardToRank(history_[i].action)]++;
+        [CardToRank(history_[i].action-kDealingActionBase)]++;
 
   for (int i = 0; i < kNumCardsLeftOver; ++i)
     deal[dizhu_][cards_left_over_[i]]++;
@@ -180,6 +181,10 @@ std::string DouDizhuState::FormatDeal() const {
       cards[player] = FormatHand(player, /*mark_voids=*/false, holds_);
     }
   }
+  // for (int player = 0; player < kNumPlayers; ++player) { 
+  //     cards[player] = FormatHand(player, /*mark_voids=*/false, holds_);
+  // }
+
   constexpr int kColumnWidth = 8;
   std::string padding(kColumnWidth, ' ');
   std::string rv;
@@ -188,6 +193,12 @@ std::string DouDizhuState::FormatDeal() const {
                     cards[2][rank], "\n");
   for (int rank = 0; rank < kNumRanks; ++rank)
     absl::StrAppend(&rv, padding, cards[0][rank], "\n");
+  // for (int i = 0; i < 3; i++){
+  //   for (int j = 0; j <kNumRanks; j++){
+  //     absl::StrAppend(&rv,cards[i][j]);
+  //   }
+  //   absl::StrAppend(&rv,"\n");
+  // }
   return rv;
 }
 
@@ -345,7 +356,7 @@ void DouDizhuState::ApplyDealAction(int action) {
     first_player_ = dealing_round % kNumPlayers;
     card_rank_face_up_ = CardToRank(action - kDealingActionBase);
   }
-  const int dealt_player_idx = ((history_.size() - 1) % kNumPlayers);
+  const int dealt_player_idx = ((history_.size() - 1) % kNumPlayers);//改
   const int dealt_rank = CardToRank(action - kDealingActionBase);
   holds_[dealt_player_idx][dealt_rank]++;
   dealer_deck_[action - kDealingActionBase]--;
