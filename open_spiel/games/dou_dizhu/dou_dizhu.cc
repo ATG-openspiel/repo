@@ -211,6 +211,12 @@ std::string DouDizhuState::ObservationString(Player player) const {
                                        FormatSingleHand(played_deck_)));
   absl::StrAppend(&rv,
                   absl::StrFormat("face up card rank: %d", card_rank_face_up_));
+  absl::StrAppend(&rv,
+                  absl::StrFormat("bid card 1 rank: %d", cards_left_over_[0]));
+  absl::StrAppend(&rv,
+                  absl::StrFormat("bid card 2 rank: %d", cards_left_over_[1]));
+  absl::StrAppend(&rv,
+                  absl::StrFormat("bid card 3 rank: %d", cards_left_over_[2]));
   absl::StrAppend(&rv, absl::StrFormat("start player: %d", first_player_));
   absl::StrAppend(
       &rv, absl::StrFormat("My position from Dizhu: %d",
@@ -251,6 +257,13 @@ void DouDizhuState::WriteObservationTensor(Player player,
     const int start_player_base = 2 * played_deck_base + kNumPlayers;
     values_iterator[start_player_base + first_player_] = 1;
     values_iterator[start_player_base + kNumPlayers + card_rank_face_up_] = 1;
+  }
+
+  if (!cards_left_over_.empty()){
+    const int bid_cards_base = 2 * played_deck_base + 2 * kNumPlayers + kNumRanks;
+    values_iterator[bid_cards_base + cards_left_over_[0]] = 1;
+    values_iterator[bid_cards_base + kNumRanks + cards_left_over_[1]] = 1;
+    values_iterator[bid_cards_base + 2 * kNumRanks +cards_left_over_[2]] = 1;
   }
 }
 

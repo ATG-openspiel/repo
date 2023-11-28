@@ -133,7 +133,7 @@ class DouDizhuState : public State {
   std::string FormatPlay() const;
   std::string FormatResult() const;
   // the ranks of the cards left over after dealing phase
-  std::vector<int> cards_left_over_;
+  std::vector<int> cards_left_over_;//bid之后的三张明牌
 
   int num_passes_ = 0;  // Number of consecutive passes since the last non-pass.
   int winning_bid_ = 0;

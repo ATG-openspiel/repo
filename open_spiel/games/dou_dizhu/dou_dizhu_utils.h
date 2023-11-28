@@ -50,9 +50,10 @@ inline constexpr int kNumSuits = 4;
 // Plus the current player 
 // Plus the start player
 // Plus the face up card
+// Plus three face up bid cards 
 inline constexpr int kObservationTensorSize =
     2 * ((kNumRanks - 2) * (kNumSuits + 1) + 2 * 2) + kNumPlayers +
-    kNumPlayers + kNumRanks;
+    kNumPlayers + kNumRanks * 4;
 
 inline constexpr int kDealingActionBase = kNumCards - kNumCardsLeftOver;
 
