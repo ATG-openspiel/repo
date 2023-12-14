@@ -192,7 +192,8 @@ def main(_):
 
   game = envs.envs[0]._game  # pylint: disable=protected-access
   # info_state_shape = game.observation_tensor_shape()
-  info_state_shape = [11]
+  info_state_shape = game.information_state_tensor_shape()
+  # info_state_shape = [11]
   #dayin
   print(info_state_shape,'\n')
   num_updates = FLAGS.total_timesteps // batch_size
@@ -200,7 +201,7 @@ def main(_):
       input_shape=info_state_shape,
       num_actions=game.num_distinct_actions(),
       num_players=game.num_players(),
-      player_id=0,
+      player_id=0,                                                 
       num_envs=FLAGS.num_envs,
       steps_per_batch=FLAGS.num_steps,
       num_minibatches=FLAGS.num_minibatches,
