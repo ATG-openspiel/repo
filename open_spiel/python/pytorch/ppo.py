@@ -126,7 +126,7 @@ class PPOAtariAgent(nn.Module):
     self.num_actions = num_actions
     self.device = device
     self.register_buffer("mask_value", torch.tensor(INVALID_ACTION_PENALTY))
-
+ 
   def get_value(self, x):
     return self.critic(self.network(x / 255.0))
 
@@ -138,7 +138,7 @@ class PPOAtariAgent(nn.Module):
     logits = self.actor(hidden)
     probs = CategoricalMasked(
         logits=logits, masks=legal_actions_mask, mask_value=self.mask_value)
-
+  
     if action is None:
       action = probs.sample()
     return action, probs.log_prob(action), probs.entropy(), self.critic(

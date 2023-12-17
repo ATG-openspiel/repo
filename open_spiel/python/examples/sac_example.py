@@ -29,14 +29,14 @@ def make_single_env(game_name, seed):
 
 
 def get_config():
-    parser = argparse.ArgumentParser(description='RL')
+    parser = argparse.ArgumentParser(description='RL') 
     parser.add_argument("--run_name", type=str, default="SAC", help="Run name, default: SAC")
-    parser.add_argument("--env", type=str, default="kuhn_poker(players=3)", help="Gym environment name, default: kuhn_poker(players=3)")
-    parser.add_argument("--episodes", type=int, default=1000000, help="Number of episodes, default: 100")
-    parser.add_argument("--buffer_size", type=int, default=100_000, help="Maximal training dataset size, default: 100_000")
+    parser.add_argument("--env", type=str, default="leduc_poker", help="Gym environment name, default: kuhn_poker(players=3)")
+    parser.add_argument("--episodes", type=int, default=3000000, help="Number of episodes, default: 100")
+    parser.add_argument("--buffer_size", type=int, default=200000, help="Maximal training dataset size, default: 100_000")
     parser.add_argument("--seed", type=int, default=1, help="Seed, default: 1")
     parser.add_argument("--save_every", type=int, default=1000, help="Saves the network every x epochs, default: 25")
-    parser.add_argument("--batch_size", type=int, default=256, help="Batch size, default: 256")
+    parser.add_argument("--batch_size", type=int, default=5000, help="Batch size, default: 256")
     
     args = parser.parse_args()
     return args
@@ -60,7 +60,7 @@ def train(config):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     steps = 0
-    average10 = deque(maxlen=10)
+    average100 = deque(maxlen=100)
     total_steps = 0
     
     game = env._game
@@ -72,7 +72,7 @@ def train(config):
 
     buffer = ReplayBuffer(buffer_size=config.buffer_size, batch_size=config.batch_size, device=device)
     
-    collect_random(env=env, dataset=buffer, num_samples=10000, player_id=agent.player_id)
+    collect_random(env=env, dataset=buffer, num_samples=1000, player_id=agent.player_id)
     
     # if config.log_video:
     #     env = gym.wrappers.Monitor(env, './video', video_callable=lambda x: x%10==0, force=True)
@@ -85,8 +85,8 @@ def train(config):
         #每局游戏开始时，玩家i行动前其他玩家随机采取动作
         while state.observations["current_player"] != player_id:
             current_player = state.observations["current_player"]
-            action = [random.choice(state.observations["legal_actions"][current_player])]
-            state = env.step(action)
+            action = random.choice(state.observations["legal_actions"][current_player])
+            state = env.step([action])
 
         while True:
 
@@ -103,8 +103,8 @@ def train(config):
                 if state.last():
                     break
                 current_player = state.observations["current_player"]
-                action = [random.choice(state.observations["legal_actions"][current_player])]
-                state = env.step(action)
+                action = random.choice(state.observations["legal_actions"][current_player])
+                state = env.step([action])#bug
 
             next_state_tensor = torch.Tensor(state.observations["info_state"][agent.player_id])
             la_next = torch.Tensor(state.observations["legal_actions"][agent.player_id])
@@ -117,7 +117,7 @@ def train(config):
             if done:
                 break
 
-        average10.append(rewards)
+        average100.append(rewards)
         total_steps += episode_steps
         print("Episode: {} | Reward: {} | Polciy Loss: {} | Alpha: {} | Steps: {}".format(i, rewards, policy_loss, current_alpha, steps))
         
@@ -127,7 +127,7 @@ def train(config):
         writer.add_scalar("losses/alpha_loss", alpha_loss, total_steps)
         writer.add_scalar("results/alpha", current_alpha, total_steps)
         writer.add_scalar("results/rewards", rewards, total_steps)
-        writer.add_scalar("results/average10_rewards", np.mean(average10), total_steps)
+        writer.add_scalar("results/average100_rewards", np.mean(average100), total_steps)
 
         
         # wandb.log({"Reward": rewards,

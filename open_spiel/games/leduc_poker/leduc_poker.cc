@@ -141,6 +141,7 @@ class LeducObserver : public Observer {
     const int kNumRounds = 2;
     const int kBitsPerAction = 2;
     const int max_bets_per_round = state.MaxBetsPerRound();
+    std::cout<<max_bets_per_round<<"--MaxBets"<<std::endl;
     auto out = allocator->Get("betting",
                               {kNumRounds, max_bets_per_round, kBitsPerAction});
     for (int round : {0, 1}) {
@@ -148,7 +149,7 @@ class LeducObserver : public Observer {
           (round == 0) ? state.round1_sequence_ : state.round2_sequence_;
       for (int i = 0; i < bets.size(); ++i) {
         if (bets[i] == ActionType::kCall) {
-          out.at(round, i, 0) = 1;  // Encode call as 10.
+          out.at(round, i, 0) = 1;  // Encode call as 10. //bug
         } else if (bets[i] == ActionType::kRaise) {
           out.at(round, i, 1) = 1;  // Encode raise as 01.
         }
@@ -176,19 +177,19 @@ class LeducObserver : public Observer {
 
     // Observing player.
     WriteObservingPlayer(state, player, allocator);
-
     // Private card(s).
     if (iig_obs_type_.private_info == PrivateInfoType::kSinglePlayer) {
       WriteSinglePlayerCard(state, player, allocator);
     } else if (iig_obs_type_.private_info == PrivateInfoType::kAllPlayers) {
       WriteAllPlayerCards(state, allocator);
     }
-
     // Public information.
     if (iig_obs_type_.public_info) {
       WriteCommunityCard(state, allocator);
+      //bug WriteBettingSequence(state, allocator)
       iig_obs_type_.perfect_recall ? WriteBettingSequence(state, allocator)
                                    : WritePotContribution(state, allocator);
+      
     }
   }
 
@@ -852,7 +853,8 @@ int LeducState::NumObservableCards() const {
   return suit_isomorphism_ ? deck_.size() / kNumSuits : deck_.size();
 }
 
-int LeducState::MaxBetsPerRound() const { return 3 * num_players_ - 2; }
+//return (1 + kMaxRaises)*num_players_ - kMaxRaises;
+int LeducState::MaxBetsPerRound() const { return (1+kMaxRaises) * num_players_ - kMaxRaises; }
 
 void LeducState::SetPrivateCards(const std::vector<int>& new_private_cards) {
   SPIEL_CHECK_EQ(new_private_cards.size(), NumPlayers());
