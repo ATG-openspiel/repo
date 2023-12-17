@@ -72,7 +72,7 @@ def train(config):
 
     buffer = ReplayBuffer(buffer_size=config.buffer_size, batch_size=config.batch_size, device=device)
     
-    collect_random(env=env, dataset=buffer, num_samples=1000, player_id=agent.player_id)
+    collect_random(env=env, dataset=buffer, num_samples=20000, player_id=agent.player_id)
     
     # if config.log_video:
     #     env = gym.wrappers.Monitor(env, './video', video_callable=lambda x: x%10==0, force=True)

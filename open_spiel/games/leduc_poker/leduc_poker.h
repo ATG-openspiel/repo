@@ -220,7 +220,7 @@ class LeducGame : public Game {
     // = 1 bet + 1 raise + (num_players_-1)*2 calls + (num_players_-2) calls
 
     // return 3 * num_players_ - 2;
-    std::cout<<(1 + kMaxRaises)*num_players_ - kMaxRaises<<std::endl;
+    
     return (1 + kMaxRaises)*num_players_ - kMaxRaises;
   }
   int MaxGameLength() const override {

@@ -140,6 +140,7 @@ class LeducObserver : public Observer {
                                    Allocator* allocator) {
     const int kNumRounds = 2;
     const int kBitsPerAction = 2;
+    const int max_bets_per_round = state.MaxBetsPerRound();
     // std::cout<<max_bets_per_round<<"--MaxBets"<<std::endl;
     auto out = allocator->Get("betting",
                               {kNumRounds, max_bets_per_round, kBitsPerAction});
