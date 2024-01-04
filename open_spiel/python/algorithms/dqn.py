@@ -19,6 +19,7 @@ import os
 from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
+import time
 
 from open_spiel.python import rl_agent
 from open_spiel.python import simple_nets
@@ -27,13 +28,22 @@ from open_spiel.python.utils.replay_buffer import ReplayBuffer
 # Temporarily disable TF2 behavior until code is updated.
 tf.disable_v2_behavior()
 
+#用于表示环境中的一个转换或步骤
+#包含以下字段：#
+#info_state：代理的信息状态。
+#action：在该状态下采取的动作。
+#reward：因采取该动作获得的奖励。
+#next_info_state：执行动作后的下一个信息状态。
+#is_final_step：该步骤是否为游戏的最终步骤。
+#legal_actions_mask：合法动作的掩码或指示符
 Transition = collections.namedtuple(
     "Transition",
     "info_state action reward next_info_state is_final_step legal_actions_mask")
 
+#非法动作的惩罚
 ILLEGAL_ACTION_LOGITS_PENALTY = -1e9
 
-
+#DQN类构造函数
 class DQN(rl_agent.AbstractAgent):
   """DQN Agent implementation in TensorFlow.
 
@@ -41,24 +51,24 @@ class DQN(rl_agent.AbstractAgent):
   """
 
   def __init__(self,
-               session,
-               player_id,
-               state_representation_size,
-               num_actions,
-               hidden_layers_sizes=128,
-               replay_buffer_capacity=10000,
-               batch_size=128,
+               session,#TensorFlow 会话
+               player_id,#agent的玩家 ID
+               state_representation_size,#状态表示的大小
+               num_actions,#可执行的动作数量
+               hidden_layers_sizes=128,#神经网络隐藏层的大小
+               replay_buffer_capacity=10000,#经验回放缓冲区的容量
+               batch_size=128,#训练时的批量大小
                replay_buffer_class=ReplayBuffer,
-               learning_rate=0.01,
-               update_target_network_every=1000,
-               learn_every=10,
-               discount_factor=1.0,
+               learning_rate=0.01,#学习率
+               update_target_network_every=1000,#更新目标网络的频率
+               learn_every=10,#每多少步进行一次学习
+               discount_factor=1.0,#折扣因子
                min_buffer_size_to_learn=1000,
-               epsilon_start=1.0,
+               epsilon_start=1.0,#用于探索的 epsilon-greedy 策略的参数
                epsilon_end=0.1,
                epsilon_decay_duration=int(1e6),
-               optimizer_str="sgd",
-               loss_str="mse"):
+               optimizer_str="sgd",#优化器
+               loss_str="mse"):#损失函数
     """Initialize the DQN agent."""
 
     # This call to locals() is used to store every argument used to initialize
@@ -95,55 +105,65 @@ class DQN(rl_agent.AbstractAgent):
     self._last_loss_value = None
 
     # Create required TensorFlow placeholders to perform the Q-network updates.
-    self._info_state_ph = tf.placeholder(
+    self._info_state_ph = tf.placeholder(#于存储代理当前的信息状态
         shape=[None, state_representation_size],
         dtype=tf.float32,
         name="info_state_ph")
-    self._action_ph = tf.placeholder(
+    self._action_ph = tf.placeholder(#用于存储代理选择的动作
         shape=[None], dtype=tf.int32, name="action_ph")
-    self._reward_ph = tf.placeholder(
+    self._reward_ph = tf.placeholder(#用于存储从环境中获得的奖励
         shape=[None], dtype=tf.float32, name="reward_ph")
-    self._is_final_step_ph = tf.placeholder(
+    self._is_final_step_ph = tf.placeholder(#用于标记一个步骤是否是游戏的最终步骤
         shape=[None], dtype=tf.float32, name="is_final_step_ph")
-    self._next_info_state_ph = tf.placeholder(
+    self._next_info_state_ph = tf.placeholder(#用于存储下一个信息状态
         shape=[None, state_representation_size],
         dtype=tf.float32,
         name="next_info_state_ph")
-    self._legal_actions_mask_ph = tf.placeholder(
+    self._legal_actions_mask_ph = tf.placeholder(#用于存储合法动作的掩码，帮助代理识别哪些动作是合法的
         shape=[None, num_actions],
         dtype=tf.float32,
         name="legal_actions_mask_ph")
 
+    #创建 Q 网络
     self._q_network = simple_nets.MLP(state_representation_size,
                                       self._layer_sizes, num_actions)
     self._q_values = self._q_network(self._info_state_ph)
 
+    #创建目标 Q 网络
     self._target_q_network = simple_nets.MLP(state_representation_size,
                                              self._layer_sizes, num_actions)
     self._target_q_values = self._target_q_network(self._next_info_state_ph)
 
     # Stop gradient to prevent updates to the target network while learning
+    #停止梯度传递
     self._target_q_values = tf.stop_gradient(self._target_q_values)
 
+    #更新目标网络
     self._update_target_network = self._create_target_network_update_op(
         self._q_network, self._target_q_network)
 
     # Create the loss operations.
     # Sum a large negative constant to illegal action logits before taking the
     # max. This prevents illegal action values from being considered as target.
+    #计算非法动作的掩码
     illegal_actions = 1 - self._legal_actions_mask_ph
+    #将非法动作的掩码乘以一个大的负常数
     illegal_logits = illegal_actions * ILLEGAL_ACTION_LOGITS_PENALTY
+    #计算目标 Q 值
     max_next_q = tf.reduce_max(
         tf.math.add(tf.stop_gradient(self._target_q_values), illegal_logits),
         axis=-1)
+    #计算训练目标
     target = (
         self._reward_ph +
         (1 - self._is_final_step_ph) * self._discount_factor * max_next_q)
 
+    #获取预测 Q 值
     action_indices = tf.stack(
         [tf.range(tf.shape(self._q_values)[0]), self._action_ph], axis=-1)
     predictions = tf.gather_nd(self._q_values, action_indices)
 
+    #创建模型保存器
     self._savers = [("q_network", tf.train.Saver(self._q_network.variables)),
                     ("target_q_network",
                      tf.train.Saver(self._target_q_network.variables))]
@@ -172,6 +192,7 @@ class DQN(rl_agent.AbstractAgent):
   def get_step_counter(self):
     return self._step_counter
 
+  #在每个时间步骤中选择动作，并在需要时更新 Q 网络
   def step(self, time_step, is_evaluation=False, add_transition_record=True):
     """Returns the action to be taken and updates the Q-network if needed.
 
@@ -185,11 +206,17 @@ class DQN(rl_agent.AbstractAgent):
     """
 
     # Act step: don't act at terminal info states or if its not our turn.
+    if time_step.current_player() == 0:
+      player_id = 0
+    else:
+      player_id = 1
     if (not time_step.last()) and (
         time_step.is_simultaneous_move() or
-        self.player_id == time_step.current_player()):
-      info_state = time_step.observations["info_state"][self.player_id]
-      legal_actions = time_step.observations["legal_actions"][self.player_id]
+        self.player_id == player_id):
+        #self.player_id == time_step.current_player()):
+      current_player = time_step.observations['current_player']
+      info_state = time_step.observations["info_state"][current_player]
+      legal_actions = time_step.observations["legal_actions"][current_player]
       epsilon = self._get_epsilon(is_evaluation)
       action, probs = self._epsilon_greedy(info_state, legal_actions, epsilon)
     else:
@@ -245,6 +272,7 @@ class DQN(rl_agent.AbstractAgent):
         legal_actions_mask=legal_actions_mask)
     self._replay_buffer.add(transition)
 
+  #用于将 Q 网络的参数复制到目标 Q 网络
   def _create_target_network_update_op(self, q_network, target_q_network):
     """Create TF ops copying the params of the Q-network to the target network.
 
@@ -311,12 +339,13 @@ class DQN(rl_agent.AbstractAgent):
     Returns:
       The average loss obtained on this batch of transitions or `None`.
     """
-
     if (len(self._replay_buffer) < self._batch_size or
         len(self._replay_buffer) < self._min_buffer_size_to_learn):
       return None
 
     transitions = self._replay_buffer.sample(self._batch_size)
+    # print(transitions)
+    # time.sleep(5)
     info_states = [t.info_state for t in transitions]
     actions = [t.action for t in transitions]
     rewards = [t.reward for t in transitions]
@@ -333,6 +362,8 @@ class DQN(rl_agent.AbstractAgent):
             self._next_info_state_ph: next_info_states,
             self._legal_actions_mask_ph: legal_actions_mask,
         })
+    # print('loss:',loss)
+    # time.sleep(5)
     return loss
 
   def _full_checkpoint_name(self, checkpoint_dir, name):

@@ -234,19 +234,21 @@ class SAC(nn.Module):
         self.gamma = 0.99
         self.tau = 1e-2
         hidden_size = 256
-        learning_rate = 5e-5
+        learning_rate_alpha = 5e-5
+        learning_rate_policy = 5e-5
+        learning_rate_critic = 1e-6
         self.clip_grad_param = 1
 
         self.target_entropy = -action_size  # -dim(A)
 
         self.log_alpha = torch.tensor([0.0], requires_grad=True)
         self.alpha = self.log_alpha.exp().detach()
-        self.alpha_optimizer = optim.Adam(params=[self.log_alpha], lr=learning_rate) 
+        self.alpha_optimizer = optim.Adam(params=[self.log_alpha], lr=learning_rate_alpha) 
                 
         # Actor Network 
 
         self.actor_local = Actor(state_size, action_size, hidden_size).to(device)
-        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=learning_rate)     
+        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=learning_rate_policy)     
         
         # Critic Network (w/ Target Network)
 
@@ -261,8 +263,8 @@ class SAC(nn.Module):
         self.critic2_target = Critic(state_size, action_size, hidden_size).to(device)
         self.critic2_target.load_state_dict(self.critic2.state_dict())
 
-        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=learning_rate)
-        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=learning_rate) 
+        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=learning_rate_critic)
+        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=learning_rate_critic) 
 
     
     def get_action(self, state, legal_actions_mask=None):

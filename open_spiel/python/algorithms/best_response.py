@@ -298,11 +298,11 @@ class CPPBestResponsePolicy(openspiel_policy.Policy):
 
   def transitions(self, state):
     """Returns a list of (action, cf_prob) pairs from the specified state."""
-    if state.current_player() == self.best_responder_id:
-      # Counterfactual reach probabilities exclude the best-responder's actions,
-      # hence return probability 1.0 for every action.
-      return [(action, 1.0) for action in state.legal_actions()]
-    elif state.is_chance_node():
+    # if state.current_player() == self.best_responder_id:
+    #   # Counterfactual reach probabilities exclude the best-responder's actions,
+    #   # hence return probability 1.0 for every action.
+    #   return [(action, 1.0) for action in state.legal_actions()]
+    if state.is_chance_node():
       return state.chance_outcomes()
     else:
       return list(self._policy.action_probabilities(state).items())
@@ -320,6 +320,19 @@ class CPPBestResponsePolicy(openspiel_policy.Policy):
       return sum(p * self.q_value(state, a)
                  for a, p in self.transitions(state)
                  if p > self._cut_threshold)
+
+  def base_value(self, state):
+    """Returns the value of the specified state to the original policy."""
+    if state.is_terminal():
+      return state.player_return(self.best_responder_id)
+    else:
+      return sum(p * self.q_basevalue(state, a)
+                 for a, p in self.transitions(state)
+                 if p > self._cut_threshold)
+
+  def q_basevalue(self, state, action):
+    """Returns the value of the (state, action) to the best-responder."""
+    return self.base_value(state.child(action))
 
   def q_value(self, state, action):
     """Returns the value of the (state, action) to the best-responder."""

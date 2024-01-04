@@ -3,7 +3,6 @@ from collections import deque
 import torch
 import argparse
 import random
-import glob
 from open_spiel.python.pytorch.sac import ReplayBuffer
 from open_spiel.python.pytorch.sac import save, collect_random
 from open_spiel.python.pytorch.sac import SAC

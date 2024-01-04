@@ -489,7 +489,7 @@ std::vector<int> KuhnGame::InformationStateTensorShape() const {
 
 std::vector<int> KuhnGame::ObservationTensorShape() const {
   // One-hot for whose turn it is.
-  // One-hot encoding for the single private card. (n+1 cards = n+1 bits)
+  // One-hot encoding for the single private card. (n+1 cards = n+1 bits) 
   // Followed by the contribution of each player to the pot (n).
   // n + n + 1 + n = 3n + 1.
 

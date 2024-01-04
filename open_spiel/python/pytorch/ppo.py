@@ -15,14 +15,13 @@
 """An implementation of PPO.
 
 Note: code adapted (with permission) from
-https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py and
-https://github.com/vwxyzjn/ppo-implementation-details/blob/main/ppo_atari.py.
+https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py 
 
 Currently only supports the single-agent case.
 """
 
 import time
-
+import random
 import numpy as np
 import torch
 from torch import nn
@@ -64,10 +63,14 @@ class PPOAgent(nn.Module):
         nn.Tanh(),
         layer_init(nn.Linear(64, 64)),
         nn.Tanh(),
+        layer_init(nn.Linear(64, 64)),
+        nn.Tanh(),
         layer_init(nn.Linear(64, 1), std=1.0),
     )
     self.actor = nn.Sequential(
         layer_init(nn.Linear(np.array(observation_shape).prod(), 64)),
+        nn.Tanh(),
+        layer_init(nn.Linear(64, 64)),
         nn.Tanh(),
         layer_init(nn.Linear(64, 64)),
         nn.Tanh(),
@@ -85,64 +88,23 @@ class PPOAgent(nn.Module):
     if legal_actions_mask is None:
       legal_actions_mask = torch.ones((len(x), self.num_actions)).bool()
 
-    logits = self.actor(x)
-    probs = CategoricalMasked(
+    logits = self.actor(x)  #通过神经网络得到未经归一化处理的输出的概率
+    probs = CategoricalMasked(  #通过合法动作mask转化成能根据归一化后的概率随机抽样动作的categorical类
         logits=logits, masks=legal_actions_mask, mask_value=self.mask_value)
     if action is None:
-      action = probs.sample()
-      print("observation_shape: ",self.observation_shape)
-      print("num_actions: ",self.num_actions)
-      print("legal_actions_mask: ",legal_actions_mask)
-      print("obs: ",x)
-      print("action: ",action)
-      print("log_prob(action): ",probs.log_prob(action))
-      print("probs: ",probs)
-      print("logits: ",logits)
+      action = probs.sample() #抽样动作
+      #打印信息
+      # print("observation_shape: ",self.observation_shape)
+      # print("num_actions: ",self.num_actions)
+      # print("legal_actions_mask: ",legal_actions_mask)
+      # print("obs: ",x)
+      # print("action: ",action)
+      # print("log_prob(action): ",probs.log_prob(action))
+      # print("probs: ",probs)
+      # print("logits: ",logits)
       
-    return action, probs.log_prob(action), probs.entropy(), self.critic(
+    return action, probs.log_prob(action), probs.entropy(), self.critic( #log_prob(action)为归一化后的概率取ln
         x), probs.probs
-
-
-class PPOAtariAgent(nn.Module):
-  """A PPO Atari agent module."""
-
-  def __init__(self, num_actions, observation_shape, device):
-    super(PPOAtariAgent, self).__init__()
-    # Note: this network is intended for atari games, taken from
-    # https://github.com/vwxyzjn/ppo-implementation-details/blob/main/ppo_atari.py
-    self.network = nn.Sequential(
-        layer_init(nn.Conv2d(4, 32, 8, stride=4)),
-        nn.ReLU(),
-        layer_init(nn.Conv2d(32, 64, 4, stride=2)),
-        nn.ReLU(),
-        layer_init(nn.Conv2d(64, 64, 3, stride=1)),
-        nn.ReLU(),
-        nn.Flatten(),
-        layer_init(nn.Linear(64 * 7 * 7, 512)),
-        nn.ReLU(),
-    )
-    self.actor = layer_init(nn.Linear(512, num_actions), std=0.01)
-    self.critic = layer_init(nn.Linear(512, 1), std=1)
-    self.num_actions = num_actions
-    self.device = device
-    self.register_buffer("mask_value", torch.tensor(INVALID_ACTION_PENALTY))
- 
-  def get_value(self, x):
-    return self.critic(self.network(x / 255.0))
-
-  def get_action_and_value(self, x, legal_actions_mask=None, action=None):
-    if legal_actions_mask is None:
-      legal_actions_mask = torch.ones((len(x), self.num_actions)).bool()
-
-    hidden = self.network(x / 255.0)
-    logits = self.actor(hidden)
-    probs = CategoricalMasked(
-        logits=logits, masks=legal_actions_mask, mask_value=self.mask_value)
-  
-    if action is None:
-      action = probs.sample()
-    return action, probs.log_prob(action), probs.entropy(), self.critic(
-        hidden), probs.probs
 
 
 def legal_actions_to_mask(legal_actions_list, num_actions):
@@ -198,7 +160,7 @@ class PPO(nn.Module):
       target_kl=None,
       device="cpu",
       writer=None,  # Tensorboard SummaryWriter
-      agent_fn=PPOAtariAgent,
+      agent_fn=PPOAgent,
   ):
     super().__init__()
 
@@ -264,7 +226,7 @@ class PPO(nn.Module):
   def get_action_and_value(self, x, legal_actions_mask=None, action=None):
     return self.network.get_action_and_value(x, legal_actions_mask, action)
 
-  def step(self, time_step, is_evaluation=False):
+  def step(self, time_step, player_id=0, is_evaluation=False):
     if is_evaluation:
       with torch.no_grad():
         legal_actions_mask = legal_actions_to_mask([
@@ -284,6 +246,7 @@ class PPO(nn.Module):
     else:
       with torch.no_grad():
         # act
+        # 玩家i行动
         obs = torch.Tensor(
             np.array([
                 np.reshape(ts.observations["info_state"][self.player_id],
@@ -306,20 +269,65 @@ class PPO(nn.Module):
             StepOutput(action=a.item(), probs=p)
             for (a, p) in zip(action, probs)
         ]
-        print("agent_output",agent_output)
+        # print("agent_output",agent_output)
         return agent_output
 
-  def post_step(self, reward, done):
+
+  #玩家i行动前其他玩家随机采取动作
+  def pre_step(self, time_step, envs):
+    new_time_step = []
+    for i, ts in enumerate(time_step):
+      while ts.observations["current_player"] != self.player_id:
+        if ts.last():
+          ts = envs.envs[i].reset()
+          continue
+        
+        current_player = ts.observations["current_player"]
+        action = [random.choice(ts.observations["legal_actions"][current_player])]
+        ts = envs.envs[i].step(action)
+      new_time_step.append(ts)
+
+    return new_time_step
+        
+
+
+  def post_step(self, time_step, envs, recent_rewards):
     # self.rewards[self.cur_batch_idx] = torch.tensor(reward).to(
     #     self.device).view(-1)
     #xiugai
-    reward_for_player = torch.tensor(reward)[:, 0].view(-1, 1)
-    self.rewards[self.cur_batch_idx] = reward_for_player.to(
-            self.device).view(-1)
+
+    #玩家i行动后到下次玩家i行动前或玩家i行动后到游戏结束
+    new_time_step = []
+    for i, ts in enumerate(time_step):
+      while ts.observations["current_player"] != self.player_id:
+        if ts.last():
+          break
+        current_player = ts.observations["current_player"]
+        action = [random.choice(ts.observations["legal_actions"][current_player])]
+        ts = envs.envs[i].step(action)
+      new_time_step.append(ts)
+    
+    done = [ts.last() for ts in new_time_step]
+    # for ts in new_time_step:
+    #   print(ts,"\n")
+    reward = [ts.rewards[self.player_id] for ts in new_time_step]
+    # reward_for_player = torch.tensor(reward)[:, self.player_id].view(-1, 1)
+    self.rewards[self.cur_batch_idx] = torch.tensor(reward).to(self.device).view(-1)
     self.dones[self.cur_batch_idx] = torch.tensor(done).to(self.device).view(-1)
 
     self.total_steps_done += self.num_envs
     self.cur_batch_idx += 1
+
+    for ts in time_step:
+      if ts.last():
+        recent_rewards.append(ts.rewards[self.player_id])
+
+    if self.writer is not None:
+      self.writer.add_scalar("charts/recent 100 rewards", np.mean(recent_rewards), self.total_steps_done)
+    print("Steps: {} | Reward: {}".format(self.total_steps_done, np.mean(recent_rewards)))
+
+    return new_time_step
+
 
   def learn(self, time_step):
     next_obs = torch.Tensor(
