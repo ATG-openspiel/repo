@@ -96,6 +96,8 @@ set(GAME_SOURCES
   kuhn_poker/kuhn_poker.h
   kuhn_poker_mp/kuhn_poker_mp.cc
   kuhn_poker_mp/kuhn_poker_mp.h
+  kuhn_mp_full/kuhn_mp_full.cc
+  kuhn_mp_full/kuhn_mp_full.h
   laser_tag/laser_tag.cc
   laser_tag/laser_tag.h
   leduc_poker/leduc_poker.cc
@@ -472,10 +474,16 @@ add_executable(kuhn_poker_mp_test kuhn_poker_mp/kuhn_poker_mp_test.cc ${OPEN_SPI
                $<TARGET_OBJECTS:algorithms>)
 add_test(kuhn_poker_mp_test kuhn_poker_mp_test)
 
+add_executable(kuhn_mp_full_test kuhn_mp_full/kuhn_mp_full_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>
+               $<TARGET_OBJECTS:algorithms>)
+add_test(kuhn_mp_full_test kuhn_mp_full_test)
+
 add_executable(leduc_poker_test leduc_poker/leduc_poker_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>
                $<TARGET_OBJECTS:algorithms>)
 add_test(leduc_poker_test leduc_poker_test)
+
 
 add_executable(lewis_signaling_test lewis_signaling/lewis_signaling_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
