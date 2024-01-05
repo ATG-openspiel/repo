@@ -26,7 +26,7 @@ from open_spiel.python.algorithms import nfsp
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer("num_train_episodes", int(9e6),
+flags.DEFINE_integer("num_train_episodes", int(9e9),
                      "Number of training episodes.")
 flags.DEFINE_integer("eval_every", 10000,
                      "Episode frequency at which the agents are evaluated.")
@@ -40,7 +40,7 @@ flags.DEFINE_integer("reservoir_buffer_capacity", int(2e6),
 flags.DEFINE_float("anticipatory_param", 0.1,
                    "Prob of using the rl best response as episode policy.")
 
-
+#用于表示NFSP（Neural Fictitious Self-Play）的联合策略
 class NFSPPolicies(policy.Policy):
   """Joint policy to be evaluated."""
 
@@ -63,16 +63,21 @@ class NFSPPolicies(policy.Policy):
 
     info_state = rl_environment.TimeStep(
         observations=self._obs, rewards=None, discounts=None, step_type=None)
-
-    with self._policies[cur_player].temp_mode_as(self._mode):
-      p = self._policies[cur_player].step(info_state, is_evaluation=True).probs
+    
+    if cur_player > 0:
+        player_id = 1
+        
+    with self._policies[player_id].temp_mode_as(self._mode):
+      p = self._policies[player_id].step(info_state, is_evaluation=True).probs
+    
     prob_dict = {action: p[action] for action in legal_actions}
     return prob_dict
 
 
 def main(unused_argv):
-  game = "kuhn_mp_full"
-  num_players = 3
+  game = "kuhn_poker"
+  num_players = 2
+  num_agents = 2
 
   env_configs = {"players": num_players}
   env = rl_environment.Environment(game, **env_configs)
@@ -88,31 +93,32 @@ def main(unused_argv):
   }
 
   with tf.Session() as sess:
-    # pylint: disable=g-complex-comprehension
     agents = [
         nfsp.NFSP(sess, idx, info_state_size, num_actions, hidden_layers_sizes,
                   FLAGS.reservoir_buffer_capacity, FLAGS.anticipatory_param,
-                  **kwargs) for idx in range(num_players)
+                  **kwargs) for idx in range(num_agents)
     ]
     expl_policies_avg = NFSPPolicies(env, agents, nfsp.MODE.average_policy)
 
     sess.run(tf.global_variables_initializer())
+    #在每个训练轮次中
     for ep in range(FLAGS.num_train_episodes):
       if (ep + 1) % FLAGS.eval_every == 0:
         losses = [agent.loss for agent in agents]
         logging.info("Losses: %s", losses)
-        expl = exploitability.exploitability_mp(env.game, expl_policies_avg)
+        #使用exploitability.exploitability函数计算策略expl_policies_avg的可利用性（exploitability），并使用logging.info打印可利用性信息
+        expl = exploitability.exploitability(env.game, expl_policies_avg)
+        logging.info(expl_policies_avg)
         logging.info("[%s] Exploitability AVG %s", ep + 1, expl)
         logging.info("_____________________________________________")
 
       time_step = env.reset()
       while not time_step.last():
-        player_id = time_step.observations["current_player"]
+        player_id = int(time_step.observations["current_player"] > 0)
         agent_output = agents[player_id].step(time_step)
         action_list = [agent_output.action]
         time_step = env.step(action_list)
 
-      # Episode is over, step all agents with final info state.
       for agent in agents:
         agent.step(time_step)
 

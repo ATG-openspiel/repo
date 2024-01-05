@@ -51,30 +51,31 @@ class NFSP(rl_agent.AbstractAgent):
                state_representation_size,
                num_actions,
                hidden_layers_sizes,
-               reservoir_buffer_capacity,
+               reservoir_buffer_capacity,#用于经验回放的储存缓冲区的容量
                anticipatory_param,
-               batch_size=128,
-               rl_learning_rate=0.01,
-               sl_learning_rate=0.01,
+               batch_size=128,#用于训练神经网络的小批量大小
+               rl_learning_rate=0.0002,#强化学习更新的学习率
+               sl_learning_rate=0.001,#监督学习更新的学习率
                min_buffer_size_to_learn=1000,
                learn_every=64,
-               optimizer_str="sgd",
+               optimizer_str="sgd",#用于训练神经网络的优化器（默认为随机梯度下降）
                **kwargs):
     """Initialize the `NFSP` agent."""
-    self.player_id = player_id
-    self._session = session
-    self._num_actions = num_actions
-    self._layer_sizes = hidden_layers_sizes
-    self._batch_size = batch_size
-    self._learn_every = learn_every
-    self._anticipatory_param = anticipatory_param
-    self._min_buffer_size_to_learn = min_buffer_size_to_learn
+    self.player_id = player_id #该代理控制的玩家的标识符
+    self._session = session #用于训练代理的TensorFlow会话
+    self._num_actions = num_actions #环境中可能的动作数量
+    self._layer_sizes = hidden_layers_sizes #一个包含隐藏层大小的整数列表，表示神经网络的结构
+    self._batch_size = batch_size#存储批量大小
+    self._learn_every = learn_every#存储学习间隔
+    self._anticipatory_param = anticipatory_param#存储探索与利用之间的参数
+    self._min_buffer_size_to_learn = min_buffer_size_to_learn#存储进行学习所需的最小缓冲区大小
 
-    self._reservoir_buffer = ReservoirBuffer(reservoir_buffer_capacity)
-    self._prev_timestep = None
-    self._prev_action = None
+    self._reservoir_buffer = ReservoirBuffer(reservoir_buffer_capacity)#初始化一个用于经验回放的储存缓冲区对象
+    self._prev_timestep = None#存储上一个时间步
+    self._prev_action = None#存储上一个动作
 
     # Step counter to keep track of learning.
+    #步骤计数器，用于跟踪学习的进展。它被初始化为0，并在代理的训练过程中逐步递增。
     self._step_counter = 0
 
     # Inner RL agent
@@ -85,6 +86,7 @@ class NFSP(rl_agent.AbstractAgent):
         "min_buffer_size_to_learn": min_buffer_size_to_learn,
         "optimizer_str": optimizer_str,
     })
+    #使用深度Q网络（DQN）来实现强化学习，并在训练过程中学习和优化策略。
     self._rl_agent = dqn.DQN(session, player_id, state_representation_size,
                              num_actions, hidden_layers_sizes, **kwargs)
 
@@ -94,12 +96,14 @@ class NFSP(rl_agent.AbstractAgent):
 
     # Placeholders.
     self._info_state_ph = tf.placeholder(
-        shape=[None, state_representation_size],
+        shape=[None, state_representation_size],#None表示可以接受任意数量的信息状态，state_representation_size表示每个信息状态的尺寸
         dtype=tf.float32,
         name="info_state_ph")
 
     self._action_probs_ph = tf.placeholder(
-        shape=[None, num_actions], dtype=tf.float32, name="action_probs_ph")
+        shape=[None, num_actions], 
+        dtype=tf.float32, 
+        name="action_probs_ph")
 
     self._legal_actions_mask_ph = tf.placeholder(
         shape=[None, num_actions],
@@ -113,11 +117,12 @@ class NFSP(rl_agent.AbstractAgent):
     self._avg_policy_probs = tf.nn.softmax(self._avg_policy)
 
     self._savers = [
-        ("q_network", tf.train.Saver(self._rl_agent._q_network.variables)),
-        ("avg_network", tf.train.Saver(self._avg_network.variables))
+        ("q_network", tf.train.Saver(self._rl_agent._q_network.variables)),#用于保存强化学习代理的Q网络的变量（即self._rl_agent._q_network.variables）
+        ("avg_network", tf.train.Saver(self._avg_network.variables))#保存平均策略网络的变量（即self._avg_network.variables）
     ]
 
     # Loss
+    #损失函数被定义为平均交叉熵损失
     self._loss = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits_v2(
             labels=tf.stop_gradient(self._action_probs_ph),
@@ -125,7 +130,7 @@ class NFSP(rl_agent.AbstractAgent):
 
     if optimizer_str == "adam":
       optimizer = tf.train.AdamOptimizer(learning_rate=sl_learning_rate)
-    elif optimizer_str == "sgd":
+    elif optimizer_str == "sgd":#梯度下降优化器
       optimizer = tf.train.GradientDescentOptimizer(
           learning_rate=sl_learning_rate)
     else:
@@ -183,16 +188,20 @@ class NFSP(rl_agent.AbstractAgent):
     Returns:
       A `rl_agent.StepOutput` containing the action probs and chosen action.
     """
-    if self._mode == MODE.best_response:
+
+    if self._mode == MODE.best_response: #用DQNagent
       agent_output = self._rl_agent.step(time_step, is_evaluation)
       if not is_evaluation and not time_step.last():
         self._add_transition(time_step, agent_output)
 
-    elif self._mode == MODE.average_policy:
+    elif self._mode == MODE.average_policy: #用rl_agent
       # Act step: don't act at terminal info states.
       if not time_step.last():
-        info_state = time_step.observations["info_state"][self.player_id]
-        legal_actions = time_step.observations["legal_actions"][self.player_id]
+        #info_state = time_step.observations["info_state"][self.player_id]
+        #legal_actions = time_step.observations["legal_actions"][self.player_id]
+        current_player = time_step.observations['current_player']
+        info_state = time_step.observations["info_state"][current_player]
+        legal_actions = time_step.observations["legal_actions"][current_player]
         action, probs = self._act(info_state, legal_actions)
         agent_output = rl_agent.StepOutput(action=action, probs=probs)
 
@@ -203,6 +212,7 @@ class NFSP(rl_agent.AbstractAgent):
       raise ValueError("Invalid mode ({})".format(self._mode))
 
     if not is_evaluation:
+      #增加步骤计数器self._step_counter的值
       self._step_counter += 1
 
       if self._step_counter % self._learn_every == 0:
@@ -223,6 +233,7 @@ class NFSP(rl_agent.AbstractAgent):
 
     return agent_output
 
+  #将新的转换（transition）添加到缓冲区（reservoir buffer）中
   def _add_transition(self, time_step, agent_output):
     """Adds the new transition using `time_step` to the reservoir buffer.
 
@@ -232,15 +243,17 @@ class NFSP(rl_agent.AbstractAgent):
       time_step: an instance of rl_environment.TimeStep.
       agent_output: an instance of rl_agent.StepOutput.
     """
-    legal_actions = time_step.observations["legal_actions"][self.player_id]
+    current_player = time_step.observations['current_player']
+    legal_actions = time_step.observations["legal_actions"][current_player]
     legal_actions_mask = np.zeros(self._num_actions)
     legal_actions_mask[legal_actions] = 1.0
     transition = Transition(
-        info_state=(time_step.observations["info_state"][self.player_id][:]),
+        info_state=(time_step.observations["info_state"][current_player][:]),
         action_probs=agent_output.probs,
         legal_actions_mask=legal_actions_mask)
     self._reservoir_buffer.add(transition)
 
+  #计算采样转换的损失，并执行平均网络的更新操作
   def _learn(self):
     """Compute the loss on sampled transitions and perform a avg-network update.
 
@@ -271,7 +284,7 @@ class NFSP(rl_agent.AbstractAgent):
   def _full_checkpoint_name(self, checkpoint_dir, name):
     checkpoint_filename = "_".join([name, "pid" + str(self.player_id)])
     return os.path.join(checkpoint_dir, checkpoint_filename)
-
+  
   def _latest_checkpoint_filename(self, name):
     checkpoint_filename = "_".join([name, "pid" + str(self.player_id)])
     return checkpoint_filename + "_latest"

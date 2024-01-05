@@ -33,7 +33,7 @@ namespace kuhn_mp_full {
 namespace {
 
 // Default parameters.修改玩家数量和总牌数(玩家数不用改，默认支持2-10，只改cards数量)
-constexpr int kDefaultPlayers = 3;
+constexpr int kDefaultPlayers = 2;
 constexpr double kAnte = 1;
 
 
@@ -151,9 +151,18 @@ class KuhnObserver : public Observer {
     // Private card
     if (iig_obs_type_.private_info == PrivateInfoType::kSinglePlayer) {
       if (iig_obs_type_.perfect_recall || iig_obs_type_.public_info) {
-        if (state.history_.size() > player) {
-          absl::StrAppend(&result, state.history_[player].action);
+        if(player == 0){
+          if (state.history_.size() > player) {
+            absl::StrAppend(&result, state.history_[player].action);
+          }
+        }else{
+          for (int p = 0; p < state.num_players_; ++p) {
+            if (p != 0 && state.history_.size() > p) {
+              absl::StrAppend(&result, state.history_[p].action);
+            }
+          }
         }
+        
       } else {
         if (state.history_.size() == 1 + player) {
           absl::StrAppend(&result, "Received card ",
@@ -590,4 +599,3 @@ TabularPolicy GetOptimalPolicy(double alpha) {
 
 }  // namespace kuhn_poker
 }  // namespace open_spiel
-
