@@ -28,7 +28,7 @@ pyspiel.egg-info/
 .build
 
 # model files
-openspiel/python/examples/model_saved*/
+open_spiel/python/examples/model_saved*/
 
  # External git modules
 open_spiel/abseil-cpp/
