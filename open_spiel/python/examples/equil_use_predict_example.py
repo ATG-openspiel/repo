@@ -38,14 +38,14 @@ class Predict_NFSPPolicies(policy.Policy):
 
   def __init__(self, env, nfsp_policies, predict_net, mode, num_cards, num_players):
     game = env.game
-    player_ids = [i for i in range(num_players)]
     super(Predict_NFSPPolicies, self).__init__(game, player_ids)
     self._policies = nfsp_policies
     self._predict_net = predict_net
     self._mode = mode
     self._num_cards = num_cards
     self._num_players = num_players
-    self._obs = {"info_state": [None for _ in range(self._num_players)], "legal_actions": [None for _ in range(self._num_players)]}
+    player_ids = [i for i in range(self._num_players)]
+    self._obs = {"info_state": [None for _ in range(self._num_players)], "legal_actions": [None for _ in range(_num_players)]}
     
     
   def rebuild_infostate_with_card_predict(self, origin_info_state, card):
