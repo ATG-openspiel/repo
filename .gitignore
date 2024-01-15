@@ -27,6 +27,9 @@ pyspiel.egg-info/
 # Swift build directory
 .build
 
+# model files
+openspiel/python/examples/model_saved*/
+
  # External git modules
 open_spiel/abseil-cpp/
 open_spiel/eigen/libeigen/

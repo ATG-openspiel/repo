@@ -221,6 +221,7 @@ KuhnState::KuhnState(std::shared_ptr<const Game> game)
       // How much each player has contributed to the pot, indexed by pid.
       ante_(game->NumPlayers(), kAnte) {}
 
+//n个玩家
 int KuhnState::CurrentPlayer() const {
   if (IsTerminal()) {
     return kTerminalPlayerId;
@@ -229,6 +230,19 @@ int KuhnState::CurrentPlayer() const {
                                             : history_.size() % num_players_;
   }
 }
+
+//团队转换1个玩家后变为一共2个玩家
+// int KuhnState::CurrentPlayer() const {
+//   if (IsTerminal()) {
+//     return kTerminalPlayerId;
+//   } else {
+//     int ID = (history_.size() < num_players_) ? kChancePlayerId
+//                                             : history_.size() % num_players_;
+//     if(ID >= 1){ID = 1;}
+
+//     return ID;
+//   }
+// }
 
 void KuhnState::DoApplyAction(Action move) {
   // Additional book-keeping
