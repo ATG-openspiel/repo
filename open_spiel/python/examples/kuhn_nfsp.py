@@ -49,11 +49,11 @@ class NFSPPolicies(policy.Policy):
 
   def __init__(self, env, nfsp_policies, mode, num_players):
     game = env.game
+    player_ids = [i for i in range(num_players)]
     super(NFSPPolicies, self).__init__(game, player_ids)
     self._policies = nfsp_policies
     self._mode = mode
     self._num_players = num_players
-    player_ids = [i for i in range(self._num_players)]
     self._obs = {"info_state": [None for _ in range(self._num_players)], "legal_actions": [None for _ in range(self._num_players)]}
 
   def action_probabilities(self, state, player_id=None):
@@ -93,7 +93,7 @@ def main(unused_argv):
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存文件名
-  save_dir = os.path.join(current_dir, "model_saved_12k6")
+  save_dir = os.path.join(current_dir, "model_saved_12k4")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
     

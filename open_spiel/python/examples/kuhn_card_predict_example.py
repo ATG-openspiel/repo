@@ -47,13 +47,14 @@ flags.DEFINE_float("anticipatory_param", 0.1,
 class NFSPPolicies(policy.Policy):
   """Joint policy to be evaluated."""
 
-  def __init__(self, env, nfsp_policies, mode):
+  def __init__(self, env, nfsp_policies, mode, num_players):
     game = env.game
-    player_ids = [0, 1, 2]
+    player_ids = [i for i in range(num_players)]
     super(NFSPPolicies, self).__init__(game, player_ids)
     self._policies = nfsp_policies
     self._mode = mode
-    self._obs = {"info_state": [None, None, None], "legal_actions": [None, None, None]}
+    self._num_players = num_players
+    self._obs = {"info_state": [None for _ in range(self._num_players)], "legal_actions": [None for _ in range(self._num_players)]}
 
   def action_probabilities(self, state, player_id=None):
     cur_player = state.current_player()
@@ -76,7 +77,7 @@ class NFSPPolicies(policy.Policy):
 def main(unused_argv):
   game = "kuhn_mp_full"
   num_players = 3
-  num_cards = 3 #牌数
+  num_cards = 4 #牌数
   
   env_configs = {"players": num_players}
   env = rl_environment.Environment(game, **env_configs)
@@ -95,7 +96,7 @@ def main(unused_argv):
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  save_dir = os.path.join(current_dir, "model_saved_12k3")
+  save_dir = os.path.join(current_dir, "model_saved_12k4")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
@@ -116,7 +117,7 @@ def main(unused_argv):
         agent.restore(save_dir)
     
     # 通过计算可利用度验证模型是否正确引入
-    expl_policies_avg = NFSPPolicies(env, nfsp_agents, nfsp.MODE.average_policy)
+    expl_policies_avg = NFSPPolicies(env, nfsp_agents, nfsp.MODE.average_policy, num_players)
     expl = exploitability.exploitability_mp(env.game, expl_policies_avg)
     logging.info("Saved model exploitability AVG %s", expl)
     
