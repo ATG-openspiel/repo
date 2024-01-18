@@ -76,8 +76,8 @@ class NFSPPolicies(policy.Policy):
   
 def main(unused_argv):
   game = "kuhn_mp_full"
-  num_players = 3
-  num_cards = 4 #牌数
+  num_players = 4
+  num_cards = 5 #牌数
   
   env_configs = {"players": num_players}
   env = rl_environment.Environment(game, **env_configs)
@@ -96,7 +96,7 @@ def main(unused_argv):
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  save_dir = os.path.join(current_dir, "model_saved_12k4")
+  save_dir = os.path.join(current_dir, "model_saved_13k5")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 

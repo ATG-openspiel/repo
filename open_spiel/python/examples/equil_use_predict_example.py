@@ -3,6 +3,7 @@ from absl import flags
 from absl import logging
 import tensorflow.compat.v1 as tf
 import os
+import itertools
 
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
@@ -46,44 +47,52 @@ class Predict_NFSPPolicies(policy.Policy):
     self._num_cards = num_cards
     self._num_players = num_players
     self._obs = {"info_state": [None for _ in range(self._num_players)], "legal_actions": [None for _ in range(self._num_players)]}
+    self._output_cards_list = self.generate_all_possible_cards(self._num_cards, self._num_players - 2)
     
-    
+  # 生成队友手牌的所有可能排列情况
+  def generate_all_possible_cards(self, cards, num_teammates):
+    cards_list = [i for i in range(cards)]
+    permutations = list(itertools.permutations(cards_list, r=num_teammates))
+    permutations_as_lists = [list(perm) for perm in permutations]
+    return permutations_as_lists
+  
+  
   def rebuild_infostate_with_card_predict(self, origin_info_state, card):
     """ return  info_state_with_card_predict. """
     
-    if isinstance(card, list):
-      pass
-    else:
-      current_player = self._obs["current_player"]
-      infostate_with_card_predict = []
-      for i in range(len(origin_info_state)):
-        if i < self._num_players:
-          infostate_with_card_predict.append(origin_info_state[i])
+    current_player = self._obs["current_player"]
+    infostate_with_card_predict = []
+    for i in range(len(origin_info_state)):
+      if i < self._num_players:
+        infostate_with_card_predict.append(origin_info_state[i])
 
-        elif i == self._num_players:
-          if current_player == 0:
-            for m in range(self._num_players):
-              for n in range(self._num_cards):
-                if m == 0:
-                  infostate_with_card_predict.append(origin_info_state[i + n])
+      elif i == self._num_players:
+        if current_player == 0:
+          for m in range(self._num_players):
+            for n in range(self._num_cards):
+              if m == 0:
+                infostate_with_card_predict.append(origin_info_state[i + n])
+              else:
+                infostate_with_card_predict.append(0.)
+        else:
+          flag = 0
+          for m in range(self._num_players):
+            for n in range(self._num_cards):
+              if m == 0:
+                infostate_with_card_predict.append(0.)
+              elif m == current_player:
+                infostate_with_card_predict.append(origin_info_state[i + n])
+              else:
+                if n == self._output_cards_list[card][flag]:
+                  infostate_with_card_predict.append(1.)
                 else:
                   infostate_with_card_predict.append(0.)
-          else:
-            for m in range(self._num_players):
-              for n in range(self._num_cards):
-                if m == 0:
-                  infostate_with_card_predict.append(0.)
-                elif m == current_player:
-                  infostate_with_card_predict.append(origin_info_state[i + n])
-                else:
-                  if n == card:
-                    infostate_with_card_predict.append(1.)
-                  else:
-                    infostate_with_card_predict.append(0.)
-                            
-        elif i>= self._num_players + self._num_cards:
-          infostate_with_card_predict.append(origin_info_state[i])
-      return infostate_with_card_predict
+            if m != 0 and m != current_player:
+              flag += 1
+                          
+      elif i>= self._num_players + self._num_cards:
+        infostate_with_card_predict.append(origin_info_state[i])
+    return infostate_with_card_predict
       
       
   def get_legal_cards(self, time_step):
@@ -101,10 +110,8 @@ class Predict_NFSPPolicies(policy.Policy):
       if cur_card_list[i]:
         cur_card = i 
         break 
-    legal_cards = []
-    for i in range(self._num_cards):
-      if i != cur_card:
-        legal_cards.append(i)
+    legal_cards = [i for i, sublist in enumerate(self._output_cards_list) if cur_card not in sublist]
+
     return legal_cards
   
   
@@ -121,7 +128,7 @@ class Predict_NFSPPolicies(policy.Policy):
     info_state = rl_environment.TimeStep(
         observations=self._obs, rewards=None, discounts=None, step_type=None)
     
-    predict_cards, _ = self._predict_net._predict(ori_infostate, self.get_legal_cards(info_state))
+    predict_cards, _, _ = self._predict_net._predict(ori_infostate, self.get_legal_cards(info_state))
     infostate_with_card_predict = self.rebuild_infostate_with_card_predict(state.information_state_tensor(cur_player), predict_cards)
     info_state.observations["info_state"][cur_player] = (infostate_with_card_predict)
     
@@ -134,8 +141,8 @@ class Predict_NFSPPolicies(policy.Policy):
 def main(unused_argv):
   ori_game = "kuhn_poker_mp"
   full_game = "kuhn_mp_full"
-  num_players = 3
-  num_cards = 3 #牌数
+  num_players = 4
+  num_cards = 5 #牌数
   
   env_configs = {"players": num_players}
   env = rl_environment.Environment(full_game, **env_configs)
@@ -155,7 +162,7 @@ def main(unused_argv):
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  save_dir = os.path.join(current_dir, "model_saved_12k3")
+  save_dir = os.path.join(current_dir, "model_saved_13k5")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 

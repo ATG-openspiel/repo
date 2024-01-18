@@ -6,6 +6,7 @@ import random
 from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
+import itertools
 
 from open_spiel.python import simple_nets
 
@@ -33,7 +34,10 @@ class card_predict(object):
     """Initialize the card predict agent."""
     self._session = session
     self._num_players = num_players
+    self._num_teammates = self._num_players - 2
     self._num_cards = num_cards
+    self._output_cards_list = self.generate_all_possible_cards(self._num_cards, self._num_teammates)
+    self._output_length = len(self._output_cards_list)
     self._layer_sizes = hidden_layers_sizes
     self._batch_size = batch_size
     self._learn_every = learn_every
@@ -56,16 +60,16 @@ class card_predict(object):
         name="info_state_ph")
 
     self._cards_probs_ph = tf.placeholder(
-        shape=[None, num_cards], dtype=tf.float32, name="cards_probs_ph")
+        shape=[None, self._output_length], dtype=tf.float32, name="cards_probs_ph")
 
     self._legal_cards_mask_ph = tf.placeholder(
-        shape=[None, num_cards],
+        shape=[None, self._output_length],
         dtype=tf.float32,
         name="legal_cards_mask_ph")
 
     # Card predict network.
     self._card_predict_network = simple_nets.MLP(state_representation_size,
-                                        self._layer_sizes, num_cards)
+                                        self._layer_sizes, self._output_length)
     self._cards_logits = self._card_predict_network(self._info_state_ph)
     self._cards_probs = tf.nn.softmax(self._cards_logits)
 
@@ -89,7 +93,13 @@ class card_predict(object):
 
     self._learn_step = optimizer.minimize(self._loss)
 
-
+  # 生成队友手牌的所有可能排列情况
+  def generate_all_possible_cards(self, cards, num_teammates):
+    cards_list = [i for i in range(cards)]
+    permutations = list(itertools.permutations(cards_list, r=num_teammates))
+    permutations_as_lists = [list(perm) for perm in permutations]
+    return permutations_as_lists
+  
   def _predict(self, info_state, legal_cards):
     info_state = np.reshape(info_state, [1, -1])
     cards_values, cards_probs = self._session.run(
@@ -98,14 +108,15 @@ class card_predict(object):
 
     self._last_cards_values = cards_values[0]
     # Remove illegal cards, normalize probs
-    probs = np.zeros(self._num_cards)
+    probs = np.zeros(self._output_length)
     probs[legal_cards] = cards_probs[0][legal_cards]
     probs /= sum(probs)
 
     # card 由随机选取改为选取概率最大的
     # card = np.random.choice(len(probs), p=probs)
-    card = np.argmax(probs)
-    return card, probs
+    cards_index = np.argmax(probs)
+    cards = self._output_cards_list[cards_index]
+    return cards_index, probs, cards
 
  
   def loss(self):
@@ -156,7 +167,7 @@ class card_predict(object):
   
   
   def get_legal_cards(self, time_step):
-    """  a list of all the possible cards the teammate may hold. 
+    """  a list of all the possible cards indexes of the output_cards_list which the teammates may hold. 
     
       Args:
         time_step: a time step with full infostate tensor.
@@ -170,29 +181,30 @@ class card_predict(object):
       if cur_card_list[i]:
         cur_card = i 
         break 
-    legal_cards = []
-    for i in range(self._num_cards):
-      if i != cur_card:
-        legal_cards.append(i)
+    legal_cards = [i for i, sublist in enumerate(self._output_cards_list) if cur_card not in sublist]
     return legal_cards
     
 
   def get_real_teammate_card(self, time_step):
-    """ return the teammate's real hand card. """
+    """ return the teammate's real hand cards' index in the output_cards_list. """
     current_player = time_step.observations["current_player"]
     origin_info_state = time_step.observations["info_state"][current_player]
-    if current_player == 1:
-      teammate_id = 2
-    else:
-      teammate_id = 1
-    start = self._num_players + self._num_cards * teammate_id
-    end = self._num_players + self._num_cards * teammate_id + self._num_cards 
-    teammate_card_list = origin_info_state[start:end]
-    for i in range(len(teammate_card_list)):
-      if teammate_card_list[i]:
-        real_card = i 
-        break
-    return real_card 
+
+    start = self._num_players 
+    end = self._num_players + self._num_cards * self._num_players
+    # 将玩家手牌部分向量截取出来并分割成每个玩家的手牌切片
+    allPlayers_card_list = origin_info_state[start:end]
+    teammates_card_list =  [allPlayers_card_list[i:i+self._num_cards] for i in range(0, len(allPlayers_card_list), self._num_cards)]
+    
+    real_cards = []
+    for i in range(1, self._num_players):
+      if i != current_player:
+        real_card = next(j for j, card in enumerate(teammates_card_list[i]) if card)
+        real_cards.append(real_card)
+    
+    # 寻找队友手牌集合对应在所有可能手牌组合list中的索引并返回该索引
+    real_cards_index = next(i for i, sublist in enumerate(self._output_cards_list) if sublist == real_cards)
+    return real_cards_index 
     
 
 
@@ -206,9 +218,9 @@ class card_predict(object):
       real_card: the teammate's real hand card.
       legal_cards: a list of all the possible cards the teammate may hold.
     """
-    real_cards_probs = np.zeros(self._num_cards)
+    real_cards_probs = np.zeros(self._output_length)
     real_cards_probs[real_card] = 1.0
-    legal_cards_mask = np.zeros(self._num_cards)
+    legal_cards_mask = np.zeros(self._output_length)
     legal_cards_mask[legal_cards] = 1.0
     transition = Transition(
         info_state=info_state,
@@ -269,7 +281,7 @@ class card_predict(object):
     accurate_sum = 0
     
     for info_state, legal_cards, real_card in zip(info_states, legal_cards_list, real_cards):
-      card, _ = self._predict(info_state, legal_cards)
+      card, _, _ = self._predict(info_state, legal_cards)
       sum += 1
       if card == real_card:
         accurate_sum += 1

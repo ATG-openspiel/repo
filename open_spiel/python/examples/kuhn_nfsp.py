@@ -27,7 +27,7 @@ from open_spiel.python.algorithms import nfsp
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer("num_train_episodes", int(9e6),
+flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
 flags.DEFINE_integer("eval_every", 10000,
                      "Episode frequency at which the agents are evaluated.")
@@ -76,7 +76,7 @@ class NFSPPolicies(policy.Policy):
 
 def main(unused_argv):
   game = "kuhn_mp_full"
-  num_players = 3
+  num_players = 4
 
   env_configs = {"players": num_players}
   env = rl_environment.Environment(game, **env_configs)
@@ -93,7 +93,7 @@ def main(unused_argv):
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存文件名
-  save_dir = os.path.join(current_dir, "model_saved_12k4")
+  save_dir = os.path.join(current_dir, "model_saved_13k5")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
     
@@ -107,6 +107,11 @@ def main(unused_argv):
     expl_policies_avg = NFSPPolicies(env, agents, nfsp.MODE.average_policy, num_players)
 
     sess.run(tf.global_variables_initializer())
+    
+    for agent in agents:
+      if agent.has_checkpoint(save_dir):
+        agent.restore(save_dir)
+        
     for ep in range(FLAGS.num_train_episodes):
       if (ep + 1) % FLAGS.save_every == 0:
         for agent in agents:
