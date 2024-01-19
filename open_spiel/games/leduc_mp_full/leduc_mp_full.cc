@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "open_spiel/games/leduc_poker/leduc_poker.h"
+
+//这是对抗性团队博弈版本leduc
+//leduc for ATG
+
+#include "open_spiel/games/leduc_mp_full/leduc_mp_full.h"
 
 #include <algorithm>
 #include <array>
@@ -32,13 +36,13 @@
 #include "open_spiel/spiel_utils.h"
 
 namespace open_spiel {
-namespace leduc_poker {
+namespace leduc_mp_full {
 namespace {
 
-constexpr double kAnte = 1;
+constexpr double kAnte = 1;//盲注
 
-const GameType kGameType{/*short_name=*/"leduc_poker",
-                         /*long_name=*/"Leduc Poker",
+const GameType kGameType{/*short_name=*/"leduc_mp_full",
+                         /*long_name=*/"Leduc Poker mp full",
                          GameType::Dynamics::kSequential,
                          GameType::ChanceMode::kExplicitStochastic,
                          GameType::Information::kImperfectInformation,
@@ -104,11 +108,28 @@ class LeducObserver : public Observer {
   }
 
   // Private card of the observing player. One-hot vector of size num_cards.
+  // static void WriteSinglePlayerCard(const LeducState& state, int player,
+  //                                   Allocator* allocator) {
+  //   auto out = allocator->Get("private_card", {state.NumObservableCards()});
+  //   int card = state.private_cards_[player];
+  //   if (card != kInvalidCard) out.at(card) = 1;
+  // }
+
   static void WriteSinglePlayerCard(const LeducState& state, int player,
                                     Allocator* allocator) {
-    auto out = allocator->Get("private_card", {state.NumObservableCards()});
-    int card = state.private_cards_[player];
-    if (card != kInvalidCard) out.at(card) = 1;
+    auto out = allocator->Get("private_card", {state.num_players_, state.NumObservableCards()});
+    if(player == 0){// 当前观察者是player0，只标识player0的牌
+      int card = state.private_cards_[player];
+      if (card != kInvalidCard) out.at(player, card) = 1;
+    }else{
+      for (int p = 0; p < state.num_players_; ++p) {
+        if(p!=0){
+          int card = state.private_cards_[p];
+          if (card != kInvalidCard) out.at(p, state.private_cards_[p]) = 1;
+        }
+    }
+    }
+    
   }
 
   // Private cards of all players. Tensor of shape [num_players, num_cards].
@@ -137,6 +158,7 @@ class LeducObserver : public Observer {
     const int kNumRounds = 2;
     const int kBitsPerAction = 2;
     const int max_bets_per_round = state.MaxBetsPerRound();
+    // std::cout<<max_bets_per_round<<"--MaxBets"<<std::endl;
     auto out = allocator->Get("betting",
                               {kNumRounds, max_bets_per_round, kBitsPerAction});
     for (int round : {0, 1}) {
@@ -144,7 +166,7 @@ class LeducObserver : public Observer {
           (round == 0) ? state.round1_sequence_ : state.round2_sequence_;
       for (int i = 0; i < bets.size(); ++i) {
         if (bets[i] == ActionType::kCall) {
-          out.at(round, i, 0) = 1;  // Encode call as 10.
+          out.at(round, i, 0) = 1;  // Encode call as 10. //bug
         } else if (bets[i] == ActionType::kRaise) {
           out.at(round, i, 1) = 1;  // Encode raise as 01.
         }
@@ -172,19 +194,19 @@ class LeducObserver : public Observer {
 
     // Observing player.
     WriteObservingPlayer(state, player, allocator);
-
     // Private card(s).
     if (iig_obs_type_.private_info == PrivateInfoType::kSinglePlayer) {
       WriteSinglePlayerCard(state, player, allocator);
     } else if (iig_obs_type_.private_info == PrivateInfoType::kAllPlayers) {
       WriteAllPlayerCards(state, allocator);
     }
-
     // Public information.
     if (iig_obs_type_.public_info) {
       WriteCommunityCard(state, allocator);
+      //bug WriteBettingSequence(state, allocator)
       iig_obs_type_.perfect_recall ? WriteBettingSequence(state, allocator)
                                    : WritePotContribution(state, allocator);
+      
     }
   }
 
@@ -202,7 +224,14 @@ class LeducObserver : public Observer {
     // Private card(s).
     if (iig_obs_type_.private_info == PrivateInfoType::kSinglePlayer) {
       absl::StrAppend(&result, "[Observer: ", player, "]");
-      absl::StrAppend(&result, "[Private: ", state.private_cards_[player], "]");
+      //absl::StrAppend(&result, "[Private: ", state.private_cards_[player], "]");
+      if(player == 0){
+        absl::StrAppend(&result, "[Private: ", state.private_cards_[player], "]");
+      }else{
+        absl::StrAppend(&result, "[Privates: ");
+        absl::StrAppend(&result, absl::StrJoin(state.private_cards_.begin() + 1, state.private_cards_.end(), ""));
+        absl::StrAppend(&result, "]");
+      }
     } else if (iig_obs_type_.private_info == PrivateInfoType::kAllPlayers) {
       absl::StrAppend(
           &result, "[Privates: ", absl::StrJoin(state.private_cards_, ""), "]");
@@ -251,7 +280,7 @@ LeducState::LeducState(std::shared_ptr<const Game> game, bool action_mapping,
       pot_(kAnte * game->NumPlayers()),  // Number of chips in the pot.
       public_card_(kInvalidCard),
       // Number of cards remaining; not equal deck_.size()!
-      deck_size_((game->NumPlayers() + 1) * kNumSuits),
+      deck_size_((game->NumPlayers() + kNumRanks) * kNumSuits), //修改rank数量 
       private_cards_dealt_(0),
       remaining_players_(game->NumPlayers()),
       // Is this player a winner? Indexed by pid.
@@ -335,7 +364,7 @@ void LeducState::DoApplyAction(Action move) {
           move = ActionType::kCall;
         }
       } else if (move == ActionType::kRaise) {
-        if (num_raises_ >= 2) {
+        if (num_raises_ >= kMaxRaises) {//raise次数(times of raise)
           move = ActionType::kCall;
         }
       }
@@ -445,7 +474,7 @@ std::vector<Action> LeducState::LegalActions() const {
   // Can always call/check
   movelist.push_back(ActionType::kCall);
 
-  if (num_raises_ < 2) {
+  if (num_raises_ < kMaxRaises) {//raise次数(times of raise)
     movelist.push_back(ActionType::kRaise);
   }
 
@@ -487,7 +516,9 @@ std::string LeducState::ToString() const {
 }
 
 bool LeducState::IsTerminal() const {
-  return remaining_players_ == 1 || (round_ == 2 && ReadyForNextRound());
+  
+  //修改游戏结束判断条件
+  return remaining_players_ == 1 || folded_[0] == true || (round_ == 2 && ReadyForNextRound());
 }
 
 std::vector<double> LeducState::Returns() const {
@@ -591,7 +622,7 @@ int LeducState::RankHand(Player player) const {
   }
 
   if (suit_isomorphism_) {
-    int num_cards = deck_.size() / 2;
+    int num_cards = deck_.size() / kNumSuits;
     if (hand[0] == hand[1]) {
       // Pair! Offset by deck_size_^2 to put higher than every singles combo.
       return (num_cards * num_cards + hand[0]);
@@ -607,40 +638,84 @@ int LeducState::RankHand(Player player) const {
   // 0 J1, 1 J2, 2 Q1, 3 Q2, 4 K1, 5 K2.
   int num_cards = deck_.size();
 
-  if (hand[0] % 2 == 0 && hand[1] == hand[0] + 1) {
+  if (hand[0] / kNumSuits == hand[1] / kNumSuits){
     // Pair! Offset by deck_size_^2 to put higher than every singles combo.
-    return (num_cards * num_cards + hand[0]);
+    return (num_cards * num_cards + hand[0] / kNumSuits);
   } else {
     // Otherwise card value dominates. No high/low suit: only two suits, and
     // given ordering above, dividing by gets the value (integer division
     // intended.) This could lead to ties/draws and/or multiple winners.
-    return (hand[1] / 2) * num_cards + (hand[0] / 2);
+    return (hand[1] / kNumSuits) * num_cards + (hand[0] / kNumSuits);
   }
 }
 
 void LeducState::ResolveWinner() {
   num_winners_ = kInvalidPlayer;
-
+  // std::cout<<"remaining_players_ "<<remaining_players_<<std::endl;
   if (remaining_players_ == 1) {
     // Only one left in? They get the pot!
+    //游戏结束时候只剩余一人，如果这个人是对手那么对手胜并获得全部收益。
+    //如果这个人是团队玩家则团队获胜并均分收益。
     for (Player player_index = 0; player_index < num_players_; player_index++) {
       if (!folded_[player_index]) {
         num_winners_ = 1;
         winner_[player_index] = true;
-        money_[player_index] += pot_;
+        if(player_index == 0){
+          double sum = 0;
+          money_[player_index] += pot_;
+          for (Player player_index = 1; player_index < num_players_; player_index++){
+            sum += money_[player_index];
+          }
+          for (Player player_index = 1; player_index < num_players_; player_index++){
+            money_[player_index] = sum /(num_players_-1);
+          }
+        }else{
+          double sum = 0;
+          for (Player player_index = 1; player_index < num_players_; player_index++){
+            money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
+            sum += money_[player_index];
+          }
+          for (Player player_index = 1; player_index < num_players_; player_index++){
+            money_[player_index] = sum /(num_players_-1);
+          }
+        }
         pot_ = 0;
         return;
       }
     }
 
   } else {
-    // Otherwise, showdown!
-    // Find the best hand among those still in.
-    SPIEL_CHECK_NE(public_card_, kInvalidCard);
+    //其余情况为游戏结束时仍然剩余多名玩家，我们首先检查公共牌是否被翻开。
+
+    //若公共牌没有被翻开，则对手玩家（玩家0 ）必然在round1选择了fold，那么团队获胜，团队内玩家均分收益。
+
+    //若公共牌被翻开，则对手玩家（玩家0 ）必然没有在round1选择fold，那么最后游戏结束时剩余的是对手玩家和其他团队玩家。
+    //我们通过对比手牌大小便可以知道谁是获胜者，若有多个胜者则算平局，返还全部筹码；若对手玩家获胜则他获得全部收益；若团队玩家获胜，团队内玩家均分收益。
+
+    //新增判断检查公共牌是否翻开
+    if(public_card_ == kInvalidCard){
+      num_winners_ = 0;
+      std::fill(winner_.begin(), winner_.end(), false);
+      for (Player player_index = 1; player_index < num_players_; player_index++){
+        if (!folded_[player_index]){
+          winner_[player_index] = true;
+          num_winners_++;
+        }
+      }
+      double sum = 0;
+      for (Player player_index = 1; player_index < num_players_; player_index++){
+        money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
+        sum += money_[player_index];
+      }
+      for (Player player_index = 1; player_index < num_players_; player_index++){
+        money_[player_index] = sum /(num_players_-1);
+      }
+      return;
+    }
+
     int best_hand_rank = -1;
     num_winners_ = 0;
     std::fill(winner_.begin(), winner_.end(), false);
-
     for (Player player_index = 0; player_index < num_players_; player_index++) {
       if (!folded_[player_index]) {
         int rank = RankHand(player_index);
@@ -660,12 +735,40 @@ void LeducState::ResolveWinner() {
 
     // Split the pot among the winners (possibly only one).
     SPIEL_CHECK_TRUE(1 <= num_winners_ && num_winners_ <= num_players_);
-    for (Player player_index = 0; player_index < num_players_; player_index++) {
-      if (winner_[player_index]) {
-        // Give this player their share.
-        money_[player_index] += static_cast<double>(pot_) / num_winners_;
+    
+    //收益修改
+    Player player_index = 0;
+    if (winner_[player_index]){
+        if(num_winners_ == 1){
+            money_[player_index] += static_cast<double>(pot_);
+            double sum = 0;
+            for (Player player_index = 1; player_index < num_players_; player_index++){
+              sum += money_[player_index];
+            }
+            for (Player player_index = 1; player_index < num_players_; player_index++){
+              money_[player_index] = sum /(num_players_-1);
+            }
+        }else{
+          for (Player player_index = 0; player_index < num_players_; player_index++){
+            money_[player_index] = kStartingMoney;
+          } 
+        }
+    }else{
+      double sum = 0;
+      for (Player player_index = 1; player_index < num_players_; player_index++){
+        money_[player_index] += static_cast<double>(pot_) /(num_players_-1);
+        sum += money_[player_index];
+      }
+      for (Player player_index = 1; player_index < num_players_; player_index++){
+        money_[player_index] = sum /(num_players_-1);
       }
     }
+    // for (Player player_index = 0; player_index < num_players_; player_index++) {
+    //   if (winner_[player_index]) {
+    //     // Give this player their share.
+    //     money_[player_index] += static_cast<double>(pot_) / num_winners_;
+    //   }
+    // }
     pot_ = 0;
   }
 }
@@ -718,13 +821,22 @@ void LeducState::SetPrivate(Player player, Action move) {
   if (suit_isomorphism_) {
     // Consecutive cards are identical under suit isomorphism.
     private_cards_[player] = move;
-    if (deck_[move * 2] != kInvalidCard) {
-      deck_[move * 2] = kInvalidCard;
-    } else if (deck_[move * 2 + 1] != kInvalidCard) {
-      deck_[move * 2 + 1] = kInvalidCard;
-    } else {
-      SpielFatalError("Suit isomorphism error.");
+    for(int i=0; i<kNumSuits; i++){
+      if (deck_[move * 2+i] != kInvalidCard){
+        deck_[move * 2+i] = kInvalidCard;
+        break;
+      }
+      if(i == kNumSuits-1){
+        SpielFatalError("Suit isomorphism error.");
+      }
     }
+    // if (deck_[move * 2] != kInvalidCard) {
+    //   deck_[move * 2] = kInvalidCard;
+    // } else if (deck_[move * 2 + 1] != kInvalidCard) {
+    //   deck_[move * 2 + 1] = kInvalidCard;
+    // } else {
+    //   SpielFatalError("Suit isomorphism error.");
+    // }
   } else {
     private_cards_[player] = deck_[move];
     deck_[move] = kInvalidCard;
@@ -762,10 +874,11 @@ std::unique_ptr<State> LeducState::ResampleFromInfostate(
 }
 
 int LeducState::NumObservableCards() const {
-  return suit_isomorphism_ ? deck_.size() / 2 : deck_.size();
+  return suit_isomorphism_ ? deck_.size() / kNumSuits : deck_.size();
 }
 
-int LeducState::MaxBetsPerRound() const { return 3 * num_players_ - 2; }
+//return (1 + kMaxRaises)*num_players_ - kMaxRaises;
+int LeducState::MaxBetsPerRound() const { return (1+kMaxRaises) * num_players_ - kMaxRaises; }
 
 void LeducState::SetPrivateCards(const std::vector<int>& new_private_cards) {
   SPIEL_CHECK_EQ(new_private_cards.size(), NumPlayers());
@@ -775,7 +888,7 @@ void LeducState::SetPrivateCards(const std::vector<int>& new_private_cards) {
 LeducGame::LeducGame(const GameParameters& params)
     : Game(kGameType, params),
       num_players_(ParameterValue<int>("players")),
-      total_cards_((num_players_ + 1) * kNumSuits),
+      total_cards_((num_players_ + kNumRanks) * kNumSuits), //修改rank (KNumRanks>=0)
       action_mapping_(ParameterValue<bool>("action_mapping")),
       suit_isomorphism_(ParameterValue<bool>("suit_isomorphism")) {
   SPIEL_CHECK_GE(num_players_, kGameType.min_num_players);
@@ -792,7 +905,7 @@ std::unique_ptr<State> LeducGame::NewInitialState() const {
 
 int LeducGame::MaxChanceOutcomes() const {
   if (suit_isomorphism_) {
-    return total_cards_ / 2;
+    return total_cards_ / kNumSuits;
   } else {
     return total_cards_;
   }
@@ -805,7 +918,8 @@ std::vector<int> LeducGame::InformationStateTensorShape() const {
   if (suit_isomorphism_) {
     return {(num_players_) + (total_cards_) + (MaxGameLength() * 2)};
   } else {
-    return {(num_players_) + (total_cards_ * 2) + (MaxGameLength() * 2)};
+    //return {(num_players_) + (total_cards_ * 2) + (MaxGameLength() * 2)};
+    return {(num_players_) + (total_cards_ * num_players_ + total_cards_) + (MaxGameLength() * 2)};
   }
 }
 
@@ -816,13 +930,14 @@ std::vector<int> LeducGame::ObservationTensorShape() const {
   if (suit_isomorphism_) {
     return {(num_players_) + (total_cards_) + (num_players_)};
   } else {
-    return {(num_players_) + (total_cards_ * 2) + (num_players_)};
+    //return {(num_players_) + (total_cards_ * 2) + (num_players_)};
+    return {(num_players_) + (total_cards_ * num_players_ + total_cards_) + (num_players_)};
   }
 }
 
 double LeducGame::MaxUtility() const {
   // In poker, the utility is defined as the money a player has at the end of
-  // the game minus then money the player had before starting the game.
+  // the game minus the money the player had before starting the game.
   // The most a player can win *per opponent* is the most each player can put
   // into the pot, which is the raise amounts on each round times the maximum
   // number raises, plus the original chip they put in to play.
@@ -832,7 +947,7 @@ double LeducGame::MaxUtility() const {
 
 double LeducGame::MinUtility() const {
   // In poker, the utility is defined as the money a player has at the end of
-  // the game minus then money the player had before starting the game.
+  // the game minus the money the player had before starting the game.
   // The most any single player can lose is the maximum number of raises per
   // round times the amounts of each of the raises, plus the original chip
   // they put in to play.

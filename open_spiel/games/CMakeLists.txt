@@ -102,6 +102,10 @@ set(GAME_SOURCES
   laser_tag/laser_tag.h
   leduc_poker/leduc_poker.cc
   leduc_poker/leduc_poker.h
+  leduc_poker_mp/leduc_poker_mp.cc
+  leduc_poker_mp/leduc_poker_mp.h
+  leduc_mp_full/leduc_mp_full.cc
+  leduc_mp_full/leduc_mp_full.h
   lewis_signaling/lewis_signaling.cc
   lewis_signaling/lewis_signaling.h
   liars_dice/liars_dice.cc
@@ -484,6 +488,15 @@ add_executable(leduc_poker_test leduc_poker/leduc_poker_test.cc ${OPEN_SPIEL_OBJ
                $<TARGET_OBJECTS:algorithms>)
 add_test(leduc_poker_test leduc_poker_test)
 
+add_executable(leduc_poker_mp_test leduc_poker_mp/leduc_poker_mp_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>
+               $<TARGET_OBJECTS:algorithms>)
+add_test(leduc_poker_mp_test leduc_poker_mp_test)
+
+add_executable(leduc_mp_full_test leduc_mp_full/leduc_mp_full_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>
+               $<TARGET_OBJECTS:algorithms>)
+add_test(leduc_mp_full_test leduc_mp_full_test)
 
 add_executable(lewis_signaling_test lewis_signaling/lewis_signaling_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)

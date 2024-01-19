@@ -67,10 +67,10 @@ flags.DEFINE_float("epsilon_start", 0.06,
                    "Starting exploration parameter.")
 flags.DEFINE_float("epsilon_end", 0.001,
                    "Final exploration parameter.")
-flags.DEFINE_string("evaluation_metric", "nash_conv",
+flags.DEFINE_string("evaluation_metric", "exploitability",
                     "Choose from 'exploitability', 'nash_conv'.")
 flags.DEFINE_bool("use_checkpoints", True, "Save/load neural network weights.")
-flags.DEFINE_string("checkpoint_dir", "/tmp/nfsp_test",
+flags.DEFINE_string("checkpoint_dir", "./model_saved_12L133",
                     "Directory to save/load the agent.")
 
 

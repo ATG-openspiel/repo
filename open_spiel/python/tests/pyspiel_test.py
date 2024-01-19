@@ -70,6 +70,7 @@ EXPECTED_GAMES = frozenset([
     "lewis_signaling",
     "leduc_poker",
     "leduc_poker_mp",
+    "leduc_mp_full",
     "liars_dice",
     "liars_dice_ir",
     "maedn",

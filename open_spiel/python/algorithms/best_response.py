@@ -157,7 +157,7 @@ class BestResponsePolicy(openspiel_policy.Policy):
   #原版transitions
   def transitions(self, state):
     """Returns a list of (action, cf_prob) pairs from the specified state."""
-    if state.current_player() == self.best_responder_id:
+    if state.current_player() == self._player_id:
       # Counterfactual reach probabilities exclude the best-responder's actions,
       # hence return probability 1.0 for every action.
       return [(action, 1.0) for action in state.legal_actions()]
