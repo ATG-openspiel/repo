@@ -23,16 +23,17 @@ from open_spiel.python import policy
 from open_spiel.python import rl_environment
 from open_spiel.python.algorithms import exploitability
 from open_spiel.python.algorithms import nfsp
+import os
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("game_name", "leduc_poker",
+flags.DEFINE_string("game_name", "leduc_mp_full",
                     "Name of the game.")
-flags.DEFINE_integer("num_players", 2,
+flags.DEFINE_integer("num_players", 3,
                      "Number of players.")
-flags.DEFINE_integer("num_train_episodes", int(20e6),
+flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 10000,
+flags.DEFINE_integer("eval_every", 3000000,
                      "Episode frequency at which the agents are evaluated.")
 flags.DEFINE_list("hidden_layers_sizes", [
     128,
@@ -70,7 +71,7 @@ flags.DEFINE_float("epsilon_end", 0.001,
 flags.DEFINE_string("evaluation_metric", "exploitability",
                     "Choose from 'exploitability', 'nash_conv'.")
 flags.DEFINE_bool("use_checkpoints", True, "Save/load neural network weights.")
-flags.DEFINE_string("checkpoint_dir", "./model_saved_12L133",
+flags.DEFINE_string("checkpoint_dir", "model_saved_12L133",
                     "Directory to save/load the agent.")
 
 
@@ -106,7 +107,7 @@ class NFSPPolicies(policy.Policy):
     return prob_dict
 
 
-def main(unused_argv):
+def main(unused_argv): #需要修改原游戏环境的rank，suit，每回合最大下注数量；以及本程序中的人数，保存路径
   logging.info("Loading %s", FLAGS.game_name)
   game = FLAGS.game_name
   num_players = FLAGS.num_players
@@ -134,7 +135,16 @@ def main(unused_argv):
       "epsilon_start": FLAGS.epsilon_start,
       "epsilon_end": FLAGS.epsilon_end,
   }
-
+  
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  # 保存文件名
+  save_dir = os.path.join(current_dir, FLAGS.checkpoint_dir)
+  if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+    
+  log_name = f"exp_{FLAGS.checkpoint_dir[12:]}.log"
+  log_save_dir = os.path.join(save_dir, log_name)
+  
   with tf.Session() as sess:
     # pylint: disable=g-complex-comprehension
     agents = [
@@ -149,15 +159,19 @@ def main(unused_argv):
       for agent in agents:
         if agent.has_checkpoint(FLAGS.checkpoint_dir):
           agent.restore(FLAGS.checkpoint_dir)
+    
 
     for ep in range(FLAGS.num_train_episodes):
-      if (ep + 1) % FLAGS.eval_every == 0:
+      if (ep + 1) % 10000 == 0:
         losses = [agent.loss for agent in agents]
-        logging.info("Losses: %s", losses)
+        logging.info("[%s] Losses: %s", ep + 1, losses)
+      if (ep + 1) % FLAGS.eval_every == 0:
         if FLAGS.evaluation_metric == "exploitability":
           # Avg exploitability is implemented only for 2 players constant-sum
           # games, use nash_conv otherwise.
-          expl = exploitability.exploitability(env.game, joint_avg_policy)
+          expl = exploitability.exploitability_mp(env.game, joint_avg_policy)
+          with open(log_save_dir, "a") as file:
+            file.write(f"[{ep + 1}] Exploitability AVG {expl}\n")
           logging.info("[%s] Exploitability AVG %s", ep + 1, expl)
         elif FLAGS.evaluation_metric == "nash_conv":
           nash_conv = exploitability.nash_conv(env.game, joint_avg_policy)

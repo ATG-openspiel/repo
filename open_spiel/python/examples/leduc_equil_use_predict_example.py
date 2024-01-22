@@ -7,7 +7,7 @@ import itertools
 
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
-from open_spiel.python.algorithms import handcard_predict
+from open_spiel.python.algorithms import leduc_handcard_predict
 from open_spiel.python.algorithms import nfsp
 from open_spiel.python.algorithms import exploitability
 
@@ -103,14 +103,28 @@ class Predict_NFSPPolicies(policy.Policy):
     """
     current_player = time_step.observations["current_player"]
     origin_info_state = time_step.observations["info_state"][current_player]
-    start = self._num_players
-    end = self._num_players + self._num_cards
-    cur_card_list = origin_info_state[start:end]
+    private_start = self._num_players
+    private_end = self._num_players + self._num_cards
+    public_start = self._num_players + self._num_cards
+    public_end = self._num_players + self._num_cards + self._num_cards
+    cur_card_list = origin_info_state[private_start:private_end]
+    pub_card_list = origin_info_state[public_start:public_end]
+    
     for i in range(len(cur_card_list)):
       if cur_card_list[i]:
         cur_card = i 
         break 
-    legal_cards = [i for i, sublist in enumerate(self._output_cards_list) if cur_card not in sublist]
+      
+    pub_card = -1
+    for i in range(len(pub_card_list)):
+      if pub_card_list[i]:
+        pub_card = i 
+        break 
+      
+    if pub_card >= 0:
+      legal_cards = [i for i, sublist in enumerate(self._output_cards_list) if cur_card not in sublist and pub_card not in sublist]
+    else:
+      legal_cards = [i for i, sublist in enumerate(self._output_cards_list) if cur_card not in sublist]
 
     return legal_cards
   
@@ -138,11 +152,11 @@ class Predict_NFSPPolicies(policy.Policy):
     return prob_dict
   
 
-def main(unused_argv):
+def main(unused_argv): #需要修改人数，牌数，保存路径
   ori_game = "kuhn_poker_mp"
   full_game = "kuhn_mp_full"
-  num_players = 4
-  num_cards = 5 #牌数
+  num_players = 3
+  num_cards = 9 #牌数
   
   env_configs = {"players": num_players}
   env = rl_environment.Environment(full_game, **env_configs)
@@ -177,7 +191,7 @@ def main(unused_argv):
       if agent.has_checkpoint(save_dir):
         agent.restore(save_dir)
     
-    predict_agent = handcard_predict.card_predict(sess, imperfect_info_state_size, num_cards, num_players, hidden_layers_sizes_predict,
+    predict_agent = leduc_handcard_predict.card_predict(sess, imperfect_info_state_size, num_cards, num_players, hidden_layers_sizes_predict,
                 FLAGS.reservoir_buffer_capacity)
     
     if predict_agent.has_checkpoint(save_dir):

@@ -6,7 +6,7 @@ import os
 
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
-from open_spiel.python.algorithms import handcard_predict
+from open_spiel.python.algorithms import kuhn_handcard_predict
 from open_spiel.python.algorithms import nfsp
 from open_spiel.python.algorithms import exploitability
 
@@ -74,7 +74,7 @@ class NFSPPolicies(policy.Policy):
     return prob_dict
   
   
-def main(unused_argv):
+def main(unused_argv): #需要修改人数，牌数，保存路径
   game = "kuhn_mp_full"
   num_players = 4
   num_cards = 5 #牌数
@@ -108,7 +108,7 @@ def main(unused_argv):
     ]
     
 
-    predict_agent = handcard_predict.card_predict(sess, imperfect_info_state_size, num_cards, num_players, hidden_layers_sizes_predict,
+    predict_agent = kuhn_handcard_predict.card_predict(sess, imperfect_info_state_size, num_cards, num_players, hidden_layers_sizes_predict,
                 FLAGS.reservoir_buffer_capacity)
     
     sess.run(tf.global_variables_initializer())
