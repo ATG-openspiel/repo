@@ -19,7 +19,7 @@ import os
 from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
-
+import copy
 from open_spiel.python import rl_agent
 from open_spiel.python import simple_nets
 from open_spiel.python.utils.replay_buffer import ReplayBuffer
@@ -215,7 +215,7 @@ class DQN(rl_agent.AbstractAgent):
         self._prev_action = None
         return
       else:
-        self._prev_timestep = time_step
+        self._prev_timestep = copy.deepcopy(time_step)
         self._prev_action = action
 
     return rl_agent.StepOutput(action=action, probs=probs)
@@ -235,6 +235,7 @@ class DQN(rl_agent.AbstractAgent):
     legal_actions = (time_step.observations["legal_actions"][self.player_id])
     legal_actions_mask = np.zeros(self._num_actions)
     legal_actions_mask[legal_actions] = 1.0
+    # print("info_state: ", prev_time_step.observations["info_state"][self.player_id][:])
     transition = Transition(
         info_state=(
             prev_time_step.observations["info_state"][self.player_id][:]),
@@ -323,6 +324,7 @@ class DQN(rl_agent.AbstractAgent):
     next_info_states = [t.next_info_state for t in transitions]
     are_final_steps = [t.is_final_step for t in transitions]
     legal_actions_mask = [t.legal_actions_mask for t in transitions]
+    # print("info_states: ",[len(info_states[i]) for i in range (0, len(info_states))])
     loss, _ = self._session.run(
         [self._loss, self._learn_step],
         feed_dict={

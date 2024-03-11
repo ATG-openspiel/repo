@@ -25,11 +25,10 @@ import random
 from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
-from open_spiel.python import rl_environment
+
 from open_spiel.python import rl_agent
 from open_spiel.python import simple_nets
 from open_spiel.python.algorithms import dqn
-import copy
 
 # Temporarily disable TF2 behavior until code is updated.
 tf.disable_v2_behavior()
@@ -152,6 +151,7 @@ class NFSP(rl_agent.AbstractAgent):
     else:
       self._mode = MODE.average_policy
 
+  # 使用legal_action_mask过滤不合法动作
   def _act(self, info_state, legal_actions):
     info_state = np.reshape(info_state, [1, -1])
     action_values, action_probs = self._session.run(
@@ -184,9 +184,6 @@ class NFSP(rl_agent.AbstractAgent):
     Returns:
       A `rl_agent.StepOutput` containing the action probs and chosen action.
     """
-    # if self.player_id == 0 and self._prev_timestep!=None:
-    #   print("pre_time_step_", self.player_id, "__a:  ",self._prev_timestep.observations["info_state"][self.player_id][:],'\n')
-      
     if self._mode == MODE.best_response:
       agent_output = self._rl_agent.step(time_step, is_evaluation)
       if not is_evaluation and not time_step.last():
@@ -201,10 +198,8 @@ class NFSP(rl_agent.AbstractAgent):
         agent_output = rl_agent.StepOutput(action=action, probs=probs)
 
       if self._prev_timestep and not is_evaluation:
-        # print("pre_time_step_", self.player_id, "__a:  ",self._prev_timestep.observations["info_state"][self.player_id][:],'\n')
         self._rl_agent.add_transition(self._prev_timestep, self._prev_action,
                                       time_step)
-       
     else:
       raise ValueError("Invalid mode ({})".format(self._mode))
 
@@ -224,10 +219,9 @@ class NFSP(rl_agent.AbstractAgent):
         self._prev_action = None
         return
       else:
-        self._prev_timestep = copy.deepcopy(time_step)
+        self._prev_timestep = time_step
         self._prev_action = agent_output.action
-    # if self.player_id == 0:
-    #   print("pre_time_step_", self.player_id, "__b:  ",self._prev_timestep.observations["info_state"][self.player_id][:],'\n')
+
     return agent_output
 
   def _add_transition(self, time_step, agent_output):

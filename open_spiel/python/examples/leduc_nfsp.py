@@ -71,7 +71,7 @@ flags.DEFINE_float("epsilon_end", 0.001,
 flags.DEFINE_string("evaluation_metric", "exploitability",
                     "Choose from 'exploitability', 'nash_conv'.")
 flags.DEFINE_bool("use_checkpoints", True, "Save/load neural network weights.")
-flags.DEFINE_string("checkpoint_dir", "model_saved_12L133",
+flags.DEFINE_string("checkpoint_dir", "model_saved_12L143",
                     "Directory to save/load the agent.")
 
 
