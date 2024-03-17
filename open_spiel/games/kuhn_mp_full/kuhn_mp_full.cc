@@ -29,11 +29,11 @@
 namespace open_spiel {
 namespace kuhn_mp_full {
   //用于调整总牌数，表示牌数比玩家数多kDefaultCardsByPlayer个
-  constexpr int kDefaultCardsByPlayer=1;
+  constexpr int kDefaultCardsByPlayer=2;
 namespace {
 
 // Default parameters.修改玩家数量和总牌数(玩家数不用改，默认支持2-10，只改cards数量)
-constexpr int kDefaultPlayers = 2;
+constexpr int kDefaultPlayers = 4;
 constexpr double kAnte = 1;
 
 

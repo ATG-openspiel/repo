@@ -77,7 +77,7 @@ class NFSPPolicies(policy.Policy):
 def main(unused_argv): #需要修改人数，牌数，保存路径
   game = "leduc_mp_full"
   num_players = 3
-  num_cards = 9 #牌数
+  num_cards = 12 #牌数
   
   env_configs = {"players": num_players}
   env = rl_environment.Environment(game, **env_configs)
@@ -96,7 +96,7 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  save_dir = os.path.join(current_dir, "model_saved_12L133")
+  save_dir = os.path.join(current_dir, "model_saved_12L143")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 

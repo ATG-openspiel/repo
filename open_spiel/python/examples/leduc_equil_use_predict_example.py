@@ -153,10 +153,10 @@ class Predict_NFSPPolicies(policy.Policy):
   
 
 def main(unused_argv): #需要修改人数，牌数，保存路径
-  ori_game = "kuhn_poker_mp"
-  full_game = "kuhn_mp_full"
+  ori_game = "leduc_poker_mp"
+  full_game = "leduc_mp_full"
   num_players = 3
-  num_cards = 9 #牌数
+  num_cards = 12 #牌数
   
   env_configs = {"players": num_players}
   env = rl_environment.Environment(full_game, **env_configs)
@@ -176,7 +176,7 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  save_dir = os.path.join(current_dir, "model_saved_13k5")
+  save_dir = os.path.join(current_dir, "model_saved_12L143")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
@@ -188,14 +188,14 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
     ]
     
     for agent in nfsp_agents:
-      if agent.has_checkpoint(save_dir):
-        agent.restore(save_dir)
+      # if agent.has_checkpoint(save_dir):
+      agent.restore(save_dir)
     
     predict_agent = leduc_handcard_predict.card_predict(sess, imperfect_info_state_size, num_cards, num_players, hidden_layers_sizes_predict,
                 FLAGS.reservoir_buffer_capacity)
     
-    if predict_agent.has_checkpoint(save_dir):
-      predict_agent.restore(save_dir)
+    # if predict_agent.has_checkpoint(save_dir):
+    predict_agent.restore(save_dir)
       
 
     expl_policies_avg = Predict_NFSPPolicies(ori_env, nfsp_agents, predict_agent, nfsp.MODE.average_policy, num_cards, num_players)

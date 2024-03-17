@@ -242,6 +242,7 @@ class NFSPPolicies(policy.Policy):
       
     result = sorted(result)  
     return result
+  
   def get_initial_info_state_tensor(self, state, cur_player):
     ori_state_tensor = copy.deepcopy(state.information_state_tensor(cur_player))
     # 定义将数组n位后清零的函数
@@ -344,8 +345,8 @@ class NFSPPolicies(policy.Policy):
 def main(unused_argv): #需要修改原环境中的牌数，与本程序中的人数，和保存位置
   load_game = "kuhn_mp_full"
   saved_game = "kuhn_poker_mp"
-  num_players = 3
-  num_cards = 4
+  num_players = 4
+  num_cards = 6
   env_configs = {"players": num_players}
   calc_equil_env = rl_environment.Environment(saved_game, **env_configs)
   load_env = rl_environment.Environment(load_game, **env_configs)
@@ -369,8 +370,8 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 加载与保存文件名
-  load_dir = os.path.join(current_dir, "model_saved_12k4")
-  save_dir = os.path.join(current_dir, "model_saved_12k4_alter")
+  load_dir = os.path.join(current_dir, "model_saved_13k6")
+  save_dir = os.path.join(current_dir, "model_saved_13k6_alter")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
     
