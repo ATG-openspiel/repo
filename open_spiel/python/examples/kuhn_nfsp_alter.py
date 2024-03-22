@@ -31,7 +31,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 30000,
+flags.DEFINE_integer("eval_every", 60000,
                      "Episode frequency at which the agents are evaluated.")
 flags.DEFINE_integer("save_every", 100000,
                      "Episode frequency at which the networks are saved.")
@@ -345,8 +345,8 @@ class NFSPPolicies(policy.Policy):
 def main(unused_argv): #需要修改原环境中的牌数，与本程序中的人数，和保存位置
   load_game = "kuhn_mp_full"
   saved_game = "kuhn_poker_mp"
-  num_players = 4
-  num_cards = 6
+  num_players = 3
+  num_cards = 4
   env_configs = {"players": num_players}
   calc_equil_env = rl_environment.Environment(saved_game, **env_configs)
   load_env = rl_environment.Environment(load_game, **env_configs)
@@ -370,8 +370,8 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 加载与保存文件名
-  load_dir = os.path.join(current_dir, "model_saved_13k6")
-  save_dir = os.path.join(current_dir, "model_saved_13k6_alter")
+  load_dir = os.path.join(current_dir, "model_saved_12k4")
+  save_dir = os.path.join(current_dir, "model_saved_12k4_alter")
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
     

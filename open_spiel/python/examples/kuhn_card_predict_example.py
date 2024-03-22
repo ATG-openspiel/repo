@@ -3,18 +3,20 @@ from absl import flags
 from absl import logging
 import tensorflow.compat.v1 as tf
 import os
-
+import sys
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
 from open_spiel.python.algorithms import kuhn_handcard_predict
 from open_spiel.python.algorithms import nfsp
 from open_spiel.python.algorithms import exploitability
 
+args = sys.argv[1:]
+
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer("num_train_episodes", int(3e6),
+flags.DEFINE_integer("num_train_episodes", int(20010),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 1000,
+flags.DEFINE_integer("eval_every", 10000,
                      "Episode frequency at which the agents are evaluated.")
 flags.DEFINE_integer("save_every", 10000,
                      "Episode frequency at which the networks are saved.")
@@ -76,8 +78,8 @@ class NFSPPolicies(policy.Policy):
   
 def main(unused_argv): #需要修改人数，牌数，保存路径
   game = "kuhn_mp_full"
-  num_players = 4
-  num_cards = 5 #牌数
+  num_players = int(args[1]) #人数
+  num_cards = int(args[2]) #牌数
   
   env_configs = {"players": num_players}
   env = rl_environment.Environment(game, **env_configs)
@@ -96,7 +98,8 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  save_dir = os.path.join(current_dir, "model_saved_13k5")
+  # save_dir = os.path.join(current_dir, "model_saved_13k5")
+  save_dir = args[0]
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
@@ -117,9 +120,9 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
         agent.restore(save_dir)
     
     # 通过计算可利用度验证模型是否正确引入
-    expl_policies_avg = NFSPPolicies(env, nfsp_agents, nfsp.MODE.average_policy, num_players)
-    expl = exploitability.exploitability_mp(env.game, expl_policies_avg)
-    logging.info("Saved model exploitability AVG %s", expl)
+    # expl_policies_avg = NFSPPolicies(env, nfsp_agents, nfsp.MODE.average_policy, num_players)
+    # expl = exploitability.exploitability_mp(env.game, expl_policies_avg)
+    # logging.info("Saved model exploitability AVG %s", expl)
     
     for ep in range(FLAGS.num_train_episodes):
       if (ep + 1) % FLAGS.save_every == 0:
@@ -127,7 +130,7 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
 
       if (ep + 1) % FLAGS.eval_every == 0:
         predict_loss = predict_agent.loss()
-        logging.info("Predict loss: %s | predict accuracy: %s at eposide %s.", predict_loss, predict_agent._compute_accuracy(), ep+1)
+        print(f"Predict loss: {predict_loss} | predict accuracy: {predict_agent._compute_accuracy()} at eposide {ep+1}.")
 
       time_step = env.reset()
       while not time_step.last():

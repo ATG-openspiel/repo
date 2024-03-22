@@ -4,14 +4,14 @@ from absl import logging
 import tensorflow.compat.v1 as tf
 import os
 import itertools
-
+import sys
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
 from open_spiel.python.algorithms import kuhn_handcard_predict
 from open_spiel.python.algorithms import nfsp
 from open_spiel.python.algorithms import exploitability
 
-
+args = sys.argv[1:]
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_train_episodes", int(3e6),
@@ -141,8 +141,8 @@ class Predict_NFSPPolicies(policy.Policy):
 def main(unused_argv): #需要修改人数，牌数，保存路径
   ori_game = "kuhn_poker_mp"
   full_game = "kuhn_mp_full"
-  num_players = 4
-  num_cards = 5 #牌数
+  num_players = int(args[1])
+  num_cards = int(args[2]) #牌数
   
   env_configs = {"players": num_players}
   env = rl_environment.Environment(full_game, **env_configs)
@@ -162,7 +162,8 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  save_dir = os.path.join(current_dir, "model_saved_13k5")
+  # save_dir = os.path.join(current_dir, "model_saved_13k5")
+  save_dir = args[0]
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
@@ -187,7 +188,7 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
     expl_policies_avg = Predict_NFSPPolicies(ori_env, nfsp_agents, predict_agent, nfsp.MODE.average_policy, num_cards, num_players)
     
     expl = exploitability.exploitability_mp(ori_env.game, expl_policies_avg)
-    logging.info("TMECor with predict exploitability AVG %s", expl)
+    print(f"TMECor with predict exploitability AVG {expl}")
       
 
 
