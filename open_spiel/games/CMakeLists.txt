@@ -110,6 +110,10 @@ set(GAME_SOURCES
   lewis_signaling/lewis_signaling.h
   liars_dice/liars_dice.cc
   liars_dice/liars_dice.h
+  liars_dice_mp/liars_dice_mp.cc
+  liars_dice_mp/liars_dice_mp.h
+  liars_dice_info/liars_dice_info.cc
+  liars_dice_info/liars_dice_info.h
   maedn/maedn.cc
   maedn/maedn.h
   mancala/mancala.cc
@@ -506,6 +510,16 @@ add_executable(liars_dice_test liars_dice/liars_dice_test.cc ${OPEN_SPIEL_OBJECT
                $<TARGET_OBJECTS:tests>
                $<TARGET_OBJECTS:algorithms>)
 add_test(liars_dice_test liars_dice_test)
+
+add_executable(liars_dice_mp_test liars_dice_mp/liars_dice_mp_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>
+               $<TARGET_OBJECTS:algorithms>)
+add_test(liars_dice_mp_test liars_dice_mp_test)
+
+add_executable(liars_dice_info_test liars_dice_info/liars_dice_info_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>
+               $<TARGET_OBJECTS:algorithms>)
+add_test(liars_dice_info_test liars_dice_info_test)
 
 add_executable(maedn_test maedn/maedn_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
