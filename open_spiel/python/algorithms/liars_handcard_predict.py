@@ -99,7 +99,7 @@ class card_predict(object):
   # 生成队友手牌的所有可能排列情况
   def generate_all_possible_cards(self, cards, num_teammates):
     cards_list = [i for i in range(cards)]
-    permutations = list(itertools.product(cards_list, r=num_teammates))
+    permutations = list(itertools.product(cards_list, repeat=num_teammates))
     permutations_as_lists = [list(perm) for perm in permutations]
     return permutations_as_lists
   
