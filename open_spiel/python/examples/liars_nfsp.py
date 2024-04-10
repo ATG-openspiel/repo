@@ -22,16 +22,16 @@ import os
 
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
-from open_spiel.python.algorithms import exploitability
+from open_spiel.python.algorithms import exploitability_rl
 from open_spiel.python.algorithms import nfsp
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 1000,
+flags.DEFINE_integer("eval_every", 30000,
                      "Episode frequency at which the agents are evaluated.")
-flags.DEFINE_integer("save_every", 100000,
+flags.DEFINE_integer("save_every", 10000,
                      "Episode frequency at which the networks are saved.")
 flags.DEFINE_list("hidden_layers_sizes", [
     128,
@@ -127,10 +127,18 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
         logging.info("Losses: %s", losses)
         #logging.info(expl_policies_avg._policies)
         #logging.info(expl_policies_avg._obs)
+        exp_rl = exploitability_rl.exploitability_rl(agents, env)
+        expl = exp_rl.exploitability_mp_rl()
+        base_dir = "/repo/open_spiel/python/examples/exploitability_rl/"
+        file_name = "12D13.log"
+        # 保存文件名
+        file_path = os.path.join(base_dir, file_name)
+          
+        logging.info("[%s] Exploitability AVG %s", ep + 1, expl)
+        logging.info("_____________________________________________")
         
-        # expl = exploitability.exploitability_mp(env.game, expl_policies_avg)
-        # logging.info("[%s] Exploitability AVG %s", ep + 1, expl)
-        # logging.info("_____________________________________________")
+        with open(file_path, "a") as file:
+          file.write("{} Exploitability AVG {}.\n".format(ep + 1, expl))
 
       time_step = env.reset()
       #print(time_step)
