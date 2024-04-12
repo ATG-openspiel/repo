@@ -77,12 +77,12 @@ class NFSPPolicies(policy.Policy):
 def main(unused_argv): #需要修改原环境中的牌数，与本程序中的人数，和保存位置
   game = "liars_dice_info"
   num_players = 3 #玩家人数
-  numdice = 1     #每人骰子数
-  dice_sides = 3  #骰子面数
+  num_dices = 1     #每人骰子数
+  num_dice_sides = 3  #骰子面数
 
   env_configs = {"players": num_players,
-                 "numdice":numdice,
-                 "dice_sides":dice_sides}
+                 "numdice":num_dices,
+                 "dice_sides":num_dice_sides}
   env = rl_environment.Environment(game, **env_configs)
 
   info_state_size = env.observation_spec()["info_state"][0]
@@ -138,7 +138,7 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
         logging.info("_____________________________________________")
         
         with open(file_path, "a") as file:
-          file.write("{} Exploitability AVG {}.\n".format(ep + 1, expl))
+          file.write("{} Exploitability AVG {}\n".format(ep + 1, expl))
 
       time_step = env.reset()
       #print(time_step)

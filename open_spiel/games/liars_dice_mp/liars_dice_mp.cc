@@ -26,7 +26,7 @@ namespace liars_dice_mp {
 namespace {
 // Default Parameters.
 constexpr int kDefaultPlayers = 3;//人数
-constexpr int kDefaultNumDice = 2;//每人骰子数
+constexpr int kDefaultNumDice = 1;//每人骰子数
 constexpr int kDefaultDiceSides = 3;  //骰子面数
 constexpr const char* kDefaultBiddingRule = "reset-face";
 constexpr int kInvalidOutcome = -1;

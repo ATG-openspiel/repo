@@ -46,6 +46,7 @@ flags.DEFINE_float("anticipatory_param", 0.1,
 #       real_card = i 
 #       break
 #   return real_card 
+
 class NFSPPolicies(policy.Policy):
   """Joint policy to be evaluated."""
 

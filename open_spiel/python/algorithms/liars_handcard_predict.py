@@ -96,7 +96,7 @@ class card_predict(object):
 
     self._learn_step = optimizer.minimize(self._loss)
 
-  # 生成队友手牌的所有可能排列情况
+  # 生成队友手牌的所有可能排列情况, 举例来看若游戏为423，则每个人手牌有6种可能，生成的排列为[[1,1],[1,2].....[6,6]]
   def generate_all_possible_cards(self, cards, num_teammates):
     cards_list = [i for i in range(cards)]
     permutations = list(itertools.product(cards_list, repeat=num_teammates))
