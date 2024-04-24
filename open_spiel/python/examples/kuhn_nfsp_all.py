@@ -43,7 +43,7 @@ flags.DEFINE_integer("reservoir_buffer_capacity", int(2e6),
                      "Size of the reservoir buffer.")
 flags.DEFINE_float("anticipatory_param", 0.1,
                    "Prob of using the rl best response as episode policy.")
-flags.DEFINE_string("checkpoint_dir", "model_saved_all_12K3",
+flags.DEFINE_string("checkpoint_dir", "model_saved_all_12K8",
                     "Directory to save/load the agent.")
 
 def exec_py(model_load_dir, save_dir, loop_num, num_players, num_cards):
@@ -114,7 +114,7 @@ class NFSPPolicies(policy.Policy):
 def main(unused_argv): #需要修改原环境中的牌数，与本程序中的人数，和保存位置
   game = "kuhn_mp_full"
   num_players = 3
-  num_cards = 3
+  num_cards = 8
   env_configs = {"players": num_players}
   env = rl_environment.Environment(game, **env_configs)
   info_state_size = env.observation_spec()["info_state"][0]

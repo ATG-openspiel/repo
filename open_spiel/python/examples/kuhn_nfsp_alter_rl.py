@@ -24,16 +24,17 @@ from itertools import combinations, permutations
 
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
-from open_spiel.python.algorithms import exploitability
+from open_spiel.python.algorithms import exploitability_rl
 from open_spiel.python.algorithms import nfsp
+import random
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 15000,
+flags.DEFINE_integer("eval_every", 3000,
                      "Episode frequency at which the agents are evaluated.")
-flags.DEFINE_integer("save_every", 7500,
+flags.DEFINE_integer("save_every", 1000,
                      "Episode frequency at which the networks are saved.")
 flags.DEFINE_list("hidden_layers_sizes", [
     128,
@@ -205,13 +206,12 @@ class NewKuhn(object):
     return new_time_step
     
     
-class NFSPPolicies(policy.Policy):
+class NFSPPolicies_rl(object):
   """Joint policy to be evaluated."""
 
   def __init__(self, env, nfsp_policies_full, nfsp_policies_plan, mode, num_players, num_cards):
     game = env.game
     player_ids = [i for i in range(num_players)]
-    super(NFSPPolicies, self).__init__(game, player_ids)
     self._policies_full = nfsp_policies_full
     self._policies_plan = nfsp_policies_plan
     self._mode = mode
@@ -220,6 +220,15 @@ class NFSPPolicies(policy.Policy):
     self._obs_plan = {"info_state": [None for _ in range(self._num_players)], "legal_actions": [None for _ in range(self._num_players)]}
     self._obs_full = {"info_state": [None for _ in range(self._num_players)], "legal_actions": [None for _ in range(self._num_players)]}
     
+    
+  def __len__(self):
+        return len(self._policies_full)
+    
+    
+  def __getitem__(self, index):
+        return self
+      
+      
   # 输入n m, 返回排列Anm的整形列表
   def generate_permutations(self, n, m):
     result = []
@@ -243,8 +252,8 @@ class NFSPPolicies(policy.Policy):
     result = sorted(result)  
     return result
   
-  def get_initial_info_state_tensor(self, state, cur_player):
-    ori_state_tensor = copy.deepcopy(state.information_state_tensor(cur_player))
+  def get_initial_info_state_tensor(self, ori_state_tensor, cur_player):
+    # ori_state_tensor = copy.deepcopy(state.information_state_tensor(cur_player))
     # 定义将数组n位后清零的函数
     def clear_after_n(arr, n):
       if n >= len(arr):
@@ -270,8 +279,8 @@ class NFSPPolicies(policy.Policy):
           legal_actions.append(i)
     return legal_actions
   
-  def revise_info_state_tensor_by_action(self, state, current_act, cur_player):
-    ori_info_tensor = copy.deepcopy(state.information_state_tensor(cur_player))
+  def revise_info_state_tensor_by_action(self, ori_info_tensor, current_act, cur_player):
+    ori_info_tensor = copy.deepcopy(ori_info_tensor)
     actions = self.generate_permutations(self._num_cards, self._num_players-2)
     if cur_player == 0:
       result = [0] * self._num_cards
@@ -303,14 +312,14 @@ class NFSPPolicies(policy.Policy):
     return ori_info_tensor 
     
     
-  def action_probabilities(self, state, player_id=None):
-    cur_player = state.current_player()
+  def action_probabilities(self, state, legal_actions_full, player_id=None):
+    cur_player = self.get_cur_player(state)
 
     # 构造初状态向量，并调用nfsp模型来得出整局游戏中玩家的方案
-    initial_info_tensor = self.get_initial_info_state_tensor(state, cur_player)
+    initial_info_tensor = state
     self._obs_plan["current_player"] = cur_player
     self._obs_plan["info_state"][cur_player] = (initial_info_tensor)
-    hand_card_tensor = state.information_state_tensor(cur_player)[self._num_players: self._num_players+self._num_cards]
+    hand_card_tensor = state[self._num_players: self._num_players+self._num_cards]
     legal_actions_plan = self.extract_legal_actions(cur_player, hand_card_tensor)
     self._obs_plan["legal_actions"][cur_player] = legal_actions_plan
     
@@ -322,7 +331,7 @@ class NFSPPolicies(policy.Policy):
   
     # 假设action存在
     result_prob_dict = {}
-    legal_actions_full = state.legal_actions(cur_player)
+    # legal_actions_full = state.legal_actions(cur_player)
     self._obs_full["current_player"] = cur_player
     self._obs_full["legal_actions"][cur_player] = legal_actions_full
     for cur_plan_action in prob_dict_plan:  
@@ -331,6 +340,7 @@ class NFSPPolicies(policy.Policy):
       info_state = rl_environment.TimeStep(
           observations=self._obs_full, rewards=None, discounts=None, step_type=None)
       with self._policies_full[cur_player].temp_mode_as(self._mode):
+        # print(info_state)
         p = self._policies_full[cur_player].step(info_state, is_evaluation=True).probs
       prob_dict_full = {action: p[action] for action in legal_actions_full}
       prob_weight =  prob_dict_plan[cur_plan_action]
@@ -340,13 +350,27 @@ class NFSPPolicies(policy.Policy):
         else:
           result_prob_dict[key] = prob_weight * value
     return result_prob_dict
+    
+    
+  def get_cur_player(self, info_tensor):
+    info_tensor = info_tensor[:self._num_players]
+    index = next((index for index, value in enumerate(info_tensor) if value == 1), None)
+    return index
+    
+    
+  def _act(self, info_state, legal_actions):
 
+    probs_dic = self.action_probabilities(info_state, legal_actions)
+    action = random.choices(list(probs_dic.keys()), weights=list(probs_dic.values()))[0]
+    return action, probs_dic
+    
+    
 
 def main(unused_argv): #需要修改原环境中的牌数，与本程序中的人数，和保存位置
   load_game = "kuhn_mp_full"
   saved_game = "kuhn_poker_mp"
-  num_players = 4
-  num_cards = 7
+  num_players = 3
+  num_cards = 4
   env_configs = {"players": num_players}
   calc_equil_env = rl_environment.Environment(saved_game, **env_configs)
   load_env = rl_environment.Environment(load_game, **env_configs)
@@ -370,7 +394,7 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 加载与保存文件名
-  game_name = "13k7"
+  game_name = "12k4"
   load_dir = os.path.join(current_dir, f"model_saved_{game_name}")
   save_dir = os.path.join(current_dir, f"model_saved_{game_name}_alter_1")
   # 最终可利用度信息保存文件名
@@ -409,7 +433,7 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
     # ]
     
     # todo
-    expl_policies_avg = NFSPPolicies(calc_equil_env, load_nfsp_agents, saved_agents, nfsp.MODE.average_policy, num_players, num_cards)
+    our_agent = NFSPPolicies_rl(calc_equil_env, load_nfsp_agents, saved_agents, nfsp.MODE.average_policy, num_players, num_cards)
 
     # 初始化全局参数
     sess.run(tf.global_variables_initializer())
@@ -428,7 +452,10 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
       if (ep + 1) % FLAGS.eval_every == 0:
         losses = [agent.loss for agent in saved_agents]
         logging.info("Losses: %s", losses)
-        expl = exploitability.exploitability_mp(calc_equil_env.game, expl_policies_avg)
+        
+        exp_rl = exploitability_rl.exploitability_rl(our_agent, calc_equil_env)
+        expl = exp_rl.exploitability_mp_rl()
+        
         logging.info("[%s] Exploitability AVG %s", ep + 1, expl)
         logging.info("_____________________________________________")
         with open(exp_save_dir, "a") as file:
