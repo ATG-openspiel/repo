@@ -7,7 +7,7 @@ import itertools
 import sys
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
-from open_spiel.python.algorithms import kuhn_handcard_predict
+from open_spiel.python.algorithms import leduc_handcard_predict
 from open_spiel.python.algorithms import nfsp
 from open_spiel.python.algorithms import exploitability_rl
 
@@ -16,10 +16,10 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_train_episodes", int(3e6),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 1000,
-                     "Episode frequency at which the agents are evaluated.")
-flags.DEFINE_integer("save_every", 10000,
-                     "Episode frequency at which the networks are saved.")
+# flags.DEFINE_integer("eval_every", 1000,
+#                      "Episode frequency at which the agents are evaluated.")
+# flags.DEFINE_integer("save_every", 10000,
+#                      "Episode frequency at which the networks are saved.")
 flags.DEFINE_list("hidden_layers_sizes_predict", [
     256, 256, 
 ], "Number of hidden units in the predict net.")
@@ -75,7 +75,7 @@ class Predict_NFSPPolicies_Agents(object):
     current_player = next(j for j, bit in enumerate(players_tensor) if bit)
     return current_player      
     
-    
+      
   def rebuild_infostate_with_card_predict(self, origin_info_state, card):
     """ return  info_state_with_card_predict. """
     
@@ -112,9 +112,8 @@ class Predict_NFSPPolicies_Agents(object):
       elif i>= self._num_players + self._num_cards:
         infostate_with_card_predict.append(origin_info_state[i])
     return infostate_with_card_predict
-      
-      
   
+
   def get_legal_cards(self, origin_info_state):
     """  a list of all the possible cards the teammate may hold. 
     
@@ -122,14 +121,28 @@ class Predict_NFSPPolicies_Agents(object):
         time_step: a time step with imperfect infostate tensor.
     """
     current_player = self.get_current_player(origin_info_state)
-    start = self._num_players
-    end = self._num_players + self._num_cards
-    cur_card_list = origin_info_state[start:end]
+    private_start = self._num_players
+    private_end = self._num_players + self._num_cards
+    public_start = self._num_players + self._num_cards
+    public_end = self._num_players + self._num_cards + self._num_cards
+    cur_card_list = origin_info_state[private_start:private_end]
+    pub_card_list = origin_info_state[public_start:public_end]
+    
     for i in range(len(cur_card_list)):
       if cur_card_list[i]:
         cur_card = i 
         break 
-    legal_cards = [i for i, sublist in enumerate(self._output_cards_list) if cur_card not in sublist]
+      
+    pub_card = -1
+    for i in range(len(pub_card_list)):
+      if pub_card_list[i]:
+        pub_card = i 
+        break 
+      
+    if pub_card >= 0:
+      legal_cards = [i for i, sublist in enumerate(self._output_cards_list) if cur_card not in sublist and pub_card not in sublist]
+    else:
+      legal_cards = [i for i, sublist in enumerate(self._output_cards_list) if cur_card not in sublist]
 
     return legal_cards
   
@@ -147,8 +160,8 @@ class Predict_NFSPPolicies_Agents(object):
   
 
 def main(unused_argv): #需要修改人数，牌数，保存路径
-  ori_game = "kuhn_poker_mp"
-  full_game = "kuhn_mp_full"
+  ori_game = "leduc_poker_mp"
+  full_game = "leduc_mp_full"
   num_players = int(args[1])
   num_cards = int(args[2]) #牌数
   
@@ -170,7 +183,8 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  # save_dir = os.path.join(current_dir, "model_saved_13k5")
+  # save_dir = os.path.join(current_dir, "model_saved_12L143")
+  
   save_dir = args[0]
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -183,15 +197,16 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
     ]
     
     for agent in nfsp_agents:
-      if agent.has_checkpoint(save_dir):
-        agent.restore(save_dir)
-        
-    predict_agent = kuhn_handcard_predict.card_predict(sess, imperfect_info_state_size, num_cards, num_players, hidden_layers_sizes_predict,
+      # if agent.has_checkpoint(save_dir):
+      agent.restore(save_dir)
+    
+    predict_agent = leduc_handcard_predict.card_predict(sess, imperfect_info_state_size, num_cards, num_players, hidden_layers_sizes_predict,
                 FLAGS.reservoir_buffer_capacity)
     
-    if predict_agent.has_checkpoint(save_dir):
-      predict_agent.restore(save_dir)
+    # if predict_agent.has_checkpoint(save_dir):
+    predict_agent.restore(save_dir)
       
+
     # calc exp with rl
     our_agents = Predict_NFSPPolicies_Agents(nfsp_agents, predict_agent, num_cards, num_players) 
     exp_rl = exploitability_rl.exploitability_rl(our_agents, ori_env)
