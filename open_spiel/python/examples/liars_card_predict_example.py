@@ -79,9 +79,9 @@ class NFSPPolicies(policy.Policy):
   
 def main(unused_argv): #需要修改人数，牌数，保存路径
   game = "liars_dice_info"
-  num_players = 3 #人数
-  num_dices = 1    #每人骰子数
-  num_dice_sides = 3  #骰子面数
+  num_players = int(args[1]) #人数
+  num_dices = int(args[2])   #每人骰子数
+  num_dice_sides = int(args[3])  #骰子面数
   num_cards = num_dices * num_dice_sides #牌数
   
   env_configs = {"players": num_players}
@@ -101,8 +101,8 @@ def main(unused_argv): #需要修改人数，牌数，保存路径
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存路径名
-  save_dir = os.path.join(current_dir, "model_saved_12D13")
-  # save_dir = args[0]
+  # save_dir = os.path.join(current_dir, "model_saved_12D13")
+  save_dir = args[0]
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
