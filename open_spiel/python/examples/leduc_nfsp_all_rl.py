@@ -32,7 +32,7 @@ flags.DEFINE_string("game_name", "leduc_mp_full",
                     "Name of the game.")
 flags.DEFINE_integer("num_players", 3,
                      "Number of players.")
-flags.DEFINE_integer("num_cards", 12,
+flags.DEFINE_integer("num_cards", 9,
                      "Number of cards.")
 flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
@@ -74,7 +74,7 @@ flags.DEFINE_float("epsilon_end", 0.001,
 flags.DEFINE_string("evaluation_metric", "exploitability",
                     "Choose from 'exploitability', 'nash_conv'.")
 flags.DEFINE_bool("use_checkpoints", True, "Save/load neural network weights.")
-flags.DEFINE_string("checkpoint_dir", "model_saved_all_12L143_rl",
+flags.DEFINE_string("checkpoint_dir", "model_saved_all_12L233_3",
                     "Directory to save/load the agent.")
 
 def exec_py(model_load_dir, save_dir, loop_num, num_players, num_cards):

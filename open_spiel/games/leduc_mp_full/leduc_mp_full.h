@@ -58,9 +58,9 @@ inline constexpr int kNumSuits = 3;//花色数量 只修改这里就可以完成
 inline constexpr int kFirstRaiseAmount = 2;
 inline constexpr int kSecondRaiseAmount = 4;
 inline constexpr int kTotalRaisesPerRound = 2;//这个参数不修改，只与最大最小收益相关，最大最小收益并无实际用处
-inline constexpr int kMaxRaises = 1;//raise次数(times of raise) 只修改这里就可以完成每回合最大下注次数的修改
+inline constexpr int kMaxRaises = 2;//raise次数(times of raise) 只修改这里就可以完成每回合最大下注次数的修改
 inline constexpr int kStartingMoney = 100;
-inline constexpr int kNumRanks =1;//rank数量 只修改这里就可以完成rank数量的修改, total_cards = kNumSuits*(num_players + kNumRanks)
+inline constexpr int kNumRanks = 0;//rank数量 只修改这里就可以完成rank数量的修改, total_cards = kNumSuits*(num_players + kNumRanks)
 
 // Number of info states in the 2P game with default params.
 inline constexpr int kNumInfoStates = 936;

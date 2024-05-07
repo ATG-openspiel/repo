@@ -29,7 +29,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 30000,
+flags.DEFINE_integer("eval_every", 10000,
                      "Episode frequency at which the agents are evaluated.")
 flags.DEFINE_integer("save_every", 10000,
                      "Episode frequency at which the networks are saved.")

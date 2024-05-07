@@ -43,7 +43,7 @@ flags.DEFINE_integer("reservoir_buffer_capacity", int(2e6),
                      "Size of the reservoir buffer.")
 flags.DEFINE_float("anticipatory_param", 0.1,
                    "Prob of using the rl best response as episode policy.")
-flags.DEFINE_string("checkpoint_dir", "model_saved_all_12D13",
+flags.DEFINE_string("checkpoint_dir", "model_saved_all_12D13_3",
                     "Directory to save/load the agent.")
 
 

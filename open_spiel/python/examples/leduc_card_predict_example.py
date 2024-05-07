@@ -12,7 +12,7 @@ from open_spiel.python.algorithms import exploitability
 
 FLAGS = flags.FLAGS
 args = sys.argv[1:]
-flags.DEFINE_integer("num_train_episodes", int(50010),
+flags.DEFINE_integer("num_train_episodes", int(100010),
                      "Number of training episodes.")
 flags.DEFINE_integer("eval_every", 1000,
                      "Episode frequency at which the agents are evaluated.")

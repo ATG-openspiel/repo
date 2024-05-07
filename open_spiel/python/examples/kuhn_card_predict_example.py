@@ -14,7 +14,7 @@ args = sys.argv[1:]
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer("num_train_episodes", int(20010),
+flags.DEFINE_integer("num_train_episodes", int(100010),
                      "Number of training episodes.")
 flags.DEFINE_integer("eval_every", 10000,
                      "Episode frequency at which the agents are evaluated.")
