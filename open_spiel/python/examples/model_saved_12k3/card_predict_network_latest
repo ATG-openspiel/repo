@@ -1,2 +1,0 @@
-model_checkpoint_path: "/repo/open_spiel/python/examples/model_saved_12k3/card_predict_network"
-all_model_checkpoint_paths: "/repo/open_spiel/python/examples/model_saved_12k3/card_predict_network"
