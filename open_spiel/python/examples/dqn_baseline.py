@@ -109,7 +109,7 @@ class baseline_rl(object):
       exp_rl = exploitability_rl.exploitability_rl(self.base_agents, self.env)    
       expl = exp_rl.exploitability_mp_rl()
       with open(self.log_save_dir, "a") as file:
-        file.write(f"{self.game_name} baseline, loop num {(num + 1)*self.dqn_loop_nums}, AVG {expl} \n")
+        file.write(f"{self.game_name} baseline, loop num {(num + 1)*self.dqn_loop_nums} AVG {expl} \n")
       
 
 
