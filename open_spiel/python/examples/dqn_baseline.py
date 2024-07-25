@@ -27,10 +27,10 @@ from open_spiel.python.algorithms import exploitability_rl
 tf.disable_v2_behavior()
 
 ori_game = "kuhn_poker_mp"
-num_players = 3
-num_cards = 4
-game_name = "12k4"
-save_dir = f"/repo/open_spiel/python/examples/model_saved_{game_name}_baseline"
+num_players = 4
+num_cards = 7
+game_name = "13k7"
+save_dir = f"/repo/open_spiel/python/examples/model_saved_{game_name}_baseline_3"
 env_configs = {"players": num_players}
 env = rl_environment.Environment(ori_game, **env_configs)
 
@@ -72,7 +72,7 @@ class baseline_rl(object):
     # 需要多少个点
     self.total_loop_nums = 100
     # dqn超参数
-    self.dqn_loop_nums = 2000
+    self.dqn_loop_nums = 3750
     # self.dqn_save_every = 100
     self.hidden_layers_sizes = [256, 256]
     self.replay_buffer_capacity = int(2e5)

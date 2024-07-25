@@ -33,7 +33,7 @@ namespace kuhn_poker_mp {
 namespace {
 
 // Default parameters.修改玩家数量和总牌数(玩家数不用改，默认支持2-10，只改cards数量)
-constexpr int kDefaultPlayers = 3;
+constexpr int kDefaultPlayers = 5;
 constexpr double kAnte = 1;
 
 
