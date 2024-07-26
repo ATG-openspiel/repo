@@ -29,9 +29,9 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 10000,
+flags.DEFINE_integer("eval_every", 20000,
                      "Episode frequency at which the agents are evaluated.")
-flags.DEFINE_integer("save_every", 10000,
+flags.DEFINE_integer("save_every", 20000,
                      "Episode frequency at which the networks are saved.")
 flags.DEFINE_list("hidden_layers_sizes", [
     128,
@@ -75,7 +75,7 @@ class NFSPPolicies(policy.Policy):
 
 
 def main(unused_argv): #需要修改原环境中的牌数，与本程序中的人数，和保存位置
-  game = "liars_dice_info"
+  game = "liars_dice_mp"
   num_players = 3 #玩家人数
   num_dices = 1     #每人骰子数
   num_dice_sides = 3  #骰子面数
@@ -97,11 +97,17 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
   }
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
+    
   # 保存文件名
-  save_dir = os.path.join(current_dir, "model_saved_12D13")
+  game_name = "12D13"
+  save_dir = os.path.join(current_dir, f"model_saved_{game_name}_baseline_3")
+  
+  exp_log_name = f"baseline_{game_name}.log"
+  log_save_dir = os.path.join(save_dir, exp_log_name)
+  
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
-    
+  
   with tf.Session() as sess:
     # pylint: disable=g-complex-comprehension
     agents = [
@@ -125,20 +131,14 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
       if (ep + 1) % FLAGS.eval_every == 0:
         losses = [agent.loss for agent in agents]
         logging.info("Losses: %s", losses)
-        #logging.info(expl_policies_avg._policies)
-        #logging.info(expl_policies_avg._obs)
         exp_rl = exploitability_rl.exploitability_rl(agents, env)
-        expl = exp_rl.exploitability_mp_rl()
-        base_dir = "/repo/open_spiel/python/examples/exploitability_rl/"
-        file_name = "12D13.log"
-        # 保存文件名
-        file_path = os.path.join(base_dir, file_name)
-          
-        logging.info("[%s] Exploitability AVG %s", ep + 1, expl)
-        logging.info("_____________________________________________")
-        
-        with open(file_path, "a") as file:
-          file.write("{} Exploitability AVG {}\n".format(ep + 1, expl))
+        # expl = exp_rl.exploitability_mp_rl()
+        with open(log_save_dir, "a") as file:
+          file.write(f"{game_name} baseline loop num {ep + 1}---------------------------- \n")
+        # expl = exploitability.exploitability_mp_out(env.game, expl_policies_avg, log_save_dir)
+        expl = exp_rl.exploitability_mp_rl_out(log_save_dir)
+        with open(log_save_dir, "a") as file:
+          file.write(f"TMECor baseline Exploitability AVG {expl}\n")
 
       time_step = env.reset()
       #print(time_step)

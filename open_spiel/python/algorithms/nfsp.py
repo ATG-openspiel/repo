@@ -58,7 +58,7 @@ class NFSP(rl_agent.AbstractAgent):
                rl_learning_rate=0.01,
                sl_learning_rate=0.01,
                min_buffer_size_to_learn=1000,
-               learn_every=1024,
+               learn_every=512,
                optimizer_str="sgd",
                **kwargs):
     """Initialize the `NFSP` agent."""
