@@ -23,15 +23,16 @@ import os
 from open_spiel.python import policy
 from open_spiel.python import rl_environment
 from open_spiel.python.algorithms import exploitability
+from open_spiel.python.algorithms import exploitability_rl
 from open_spiel.python.algorithms import nfsp
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_train_episodes", int(9e8),
                      "Number of training episodes.")
-flags.DEFINE_integer("eval_every", 10000,
+flags.DEFINE_integer("eval_every", 4000,
                      "Episode frequency at which the agents are evaluated.")
-flags.DEFINE_integer("save_every", 10000,
+flags.DEFINE_integer("save_every", 4000,
                      "Episode frequency at which the networks are saved.")
 flags.DEFINE_list("hidden_layers_sizes", [
     128,
@@ -76,7 +77,7 @@ class NFSPPolicies(policy.Policy):
 
 def main(unused_argv): #需要修改原环境中的牌数，与本程序中的人数，和保存位置
   game = "kuhn_poker_mp"
-  num_players = 3
+  num_players = 5
 
   env_configs = {"players": num_players}
   env = rl_environment.Environment(game, **env_configs)
@@ -93,8 +94,8 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
   
   current_dir = os.path.dirname(os.path.abspath(__file__))
   # 保存文件名
-  game_name = "12k4"
-  save_dir = os.path.join(current_dir, f"model_saved_{game_name}_baseline")
+  game_name = "14k15"
+  save_dir = os.path.join(current_dir, f"model_saved_{game_name}_baseline_1")
   
   exp_log_name = f"baseline_{game_name}.log"
   log_save_dir = os.path.join(save_dir, exp_log_name)
@@ -125,9 +126,12 @@ def main(unused_argv): #需要修改原环境中的牌数，与本程序中的�
       if (ep + 1) % FLAGS.eval_every == 0:
         losses = [agent.loss for agent in agents]
         logging.info("Losses: %s", losses)
+        exp_rl = exploitability_rl.exploitability_rl(agents, env)
+        # expl = exp_rl.exploitability_mp_rl()
         with open(log_save_dir, "a") as file:
           file.write(f"{game_name} baseline loop num {ep + 1}---------------------------- \n")
-        expl = exploitability.exploitability_mp_out(env.game, expl_policies_avg, log_save_dir)
+        # expl = exploitability.exploitability_mp_out(env.game, expl_policies_avg, log_save_dir)
+        expl = exp_rl.exploitability_mp_rl_out(log_save_dir)
         with open(log_save_dir, "a") as file:
           file.write(f"TMECor baseline Exploitability AVG {expl}\n")
 
